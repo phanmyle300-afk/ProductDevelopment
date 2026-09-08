@@ -1,20 +1,20 @@
-# TalentScout - Phân Tích Dự Án & Khám Phá Sản Phẩm (Project Analysis & Product Discovery)
+# TalentScout - Nghiên Cứu Thị Trường & Khám Phá Sản Phẩm (Research Notes & Product Discovery)
 
 ---
 
 ## 1. Bối Cảnh Thị Trường & Thực Trạng Ngành Tuyển Dụng
 
-Trong làn sóng chuyển đổi số và sự bùng nổ của các cổng tuyển dụng trực tuyến, thị trường tuyển dụng nhân sự (HR Tech) đang phải đối mặt với một nghịch lý lớn: **"Lượng hồ sơ ứng tuyển bùng nổ kỷ lục nhưng doanh nghiệp vẫn khan hiếm nhân tài phù hợp"**.
+Trong làn sóng chuyển đổi số và bùng nổ các cổng việc làm trực tuyến (LinkedIn, TopCV, VietnamWorks), thị trường tuyển dụng nhân sự (HR Tech) đang đối mặt với bài toán nan giải: **"Lượng hồ sơ nộp về tăng đột biến nhưng doanh nghiệp vẫn khủng hoảng nhân tài phù hợp"**.
 
-### Số Liệu Đáng Chú Ý:
-- **Tình trạng CV Spam**: Trung bình mỗi tin tuyển dụng kỹ sư phần mềm nhận được từ **250 đến 450 hồ sơ**, trong đó hơn **70% không đáp ứng các yêu cầu cơ bản**.
-- **Áp lực sàng lọc 6 giây**: Các chuyên viên tuyển dụng chỉ dành trung bình **6 - 7.4 giây** để lướt qua một bản CV. Áp lực này dẫn đến tỷ lệ bỏ sót nhân tài thực thụ rất cao (False Negative), đồng thời tạo kẽ hở cho những ứng viên biết "nhồi nhét từ khóa" (Keyword Stuffing).
-- **Chi phí vị trí trống (Cost of Vacancy)**: Thời gian đóng một vị trí chuyên môn trung bình kéo dài **42 ngày**, gây đình trệ tiến độ dự án và thiệt hại chi phí cơ hội hàng chục ngàn USD cho doanh nghiệp.
-- **Rào cản thiên vị vô thức (Unconscious Bias)**: Định kiến xã hội về trường đại học, giới tính, vùng miền hoặc ngoại hình vẫn âm thầm ảnh hưởng đến quyết định sơ tuyển, làm giảm tính đa dạng và công bằng trong văn hóa doanh nghiệp.
+### Số Liệu Thực Tế:
+- **Tình trạng CV Spam**: Trung bình mỗi tin đăng vị trí công nghệ nhận được từ **250 đến 450 hồ sơ**, trong đó **hơn 70% ứng viên không thỏa mãn các yêu cầu cơ bản**.
+- **Áp lực sàng lọc 6 giây**: Theo nghiên cứu của Ladders Inc., chuyên viên tuyển dụng chỉ dành trung bình **6 đến 7.4 giây** để đọc lướt một bản CV. Việc này dẫn đến tỷ lệ bỏ sót nhân tài rất cao (False Negatives) và tạo kẽ hở cho ứng viên "nhồi nhét từ khóa" (Keyword Stuffing).
+- **Chi phí vị trí trống (Cost of Vacancy)**: Doanh nghiệp mất trung bình **42 ngày** để hoàn tất tuyển dụng một vị trí chuyên môn, gây đình trệ tiến độ và thiệt hại kinh tế lớn.
+- **Thiên vị vô thức (Unconscious Bias)**: Định kiến về trường đại học, giới tính, tuổi tác, ngoại hình vẫn âm thầm ảnh hưởng đến quyết định sơ tuyển, làm giảm tính đa dạng và công bằng trong tổ chức.
 
 ---
 
-## 2. Bản Đồ Chân Dung Khách Hàng (Customer Empathy Maps)
+## 2. Bản Đồ Chân Dung Người Dùng (Customer Empathy Maps)
 
 ```mermaid
 mindmap

@@ -113,9 +113,9 @@ npm run typecheck
 ---
 
 ### Docs
-- **Product (Yêu cầu sản phẩm & PRD)**: [docs/01-overview/PRD.md](docs/01-overview/PRD.md)
-- **Research notes (Nghiên cứu thị trường & Đề tài)**: [docs/01-overview/PROJECT_ANALYSIS.md](docs/01-overview/PROJECT_ANALYSIS.md)
-- **Architecture (Kiến trúc hệ thống & Dữ liệu)**: [docs/02-architecture/ARCHITECTURE.md](docs/02-architecture/ARCHITECTURE.md)
-- **Roadmap (Lộ trình phát triển AI & MLOps)**: [docs/04-operations/AI_ROADMAP_AND_MLOPS.md](docs/04-operations/AI_ROADMAP_AND_MLOPS.md)
-- **Practice Lab (Bài thực hành 3 & Quy tắc)**: [docs/05-testing-and-rules/PRACTICE_LAB_3.md](docs/05-testing-and-rules/PRACTICE_LAB_3.md)
+- **Product**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
+- **Research notes**: [docs/RESEARCH.md](docs/RESEARCH.md)
+- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md)
+
 
