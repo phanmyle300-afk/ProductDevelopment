@@ -112,47 +112,10 @@ npm run typecheck
 
 ---
 
-### 📚 Danh Mục Tài Liệu Đồ Án Chi Tiết (Documentation Links)
+### Docs
+- **Product (Yêu cầu sản phẩm & PRD)**: [docs/01-overview/PRD.md](docs/01-overview/PRD.md)
+- **Research notes (Nghiên cứu thị trường & Đề tài)**: [docs/01-overview/PROJECT_ANALYSIS.md](docs/01-overview/PROJECT_ANALYSIS.md)
+- **Architecture (Kiến trúc hệ thống & Dữ liệu)**: [docs/02-architecture/ARCHITECTURE.md](docs/02-architecture/ARCHITECTURE.md)
+- **Roadmap (Lộ trình phát triển AI & MLOps)**: [docs/04-operations/AI_ROADMAP_AND_MLOPS.md](docs/04-operations/AI_ROADMAP_AND_MLOPS.md)
+- **Practice Lab (Bài thực hành 3 & Quy tắc)**: [docs/05-testing-and-rules/PRACTICE_LAB_3.md](docs/05-testing-and-rules/PRACTICE_LAB_3.md)
 
-Hệ thống tài liệu hoàn chỉnh được chia thành 5 phân hệ chuyên sâu trong thư mục `docs/`:
-
-```
-docs/
-├── 01-overview/
-│   ├── PRD.md                       # Tài liệu Yêu cầu Sản phẩm (Enterprise PRD, OKRs, FR, NFR)
-│   └── PROJECT_ANALYSIS.md          # 3.1 Khám phá Sản phẩm (Lean Canvas, Personas, Competitor Analysis)
-│
-├── 02-architecture/
-│   ├── .gitkeep
-│   ├── ARCHITECTURE.md              # Kiến trúc Hệ thống Tổng thể, Microservices, ERD & CSDL PostgreSQL/Vector
-│   ├── DATA_FLOW.md                 # Sơ đồ Luồng Dữ liệu (DFD Level 0-1, Sequence, State Machine)
-│   └── SECURITY_AND_NETWORK.md      # An Ninh Mạng (Zero Trust, Mã Hóa AES-256/TLS 1.3, GDPR, Blind Mode)
-│
-├── 03-specifications/
-│   ├── FEATURE_SPECIFICATIONS.md    # 3.5 Đặc tả Tính năng Chi tiết (Resume Parser, Scoring Formula, XAI)
-│   ├── USER_STORIES.md              # 3.4 User Stories chuẩn INVEST & BDD / Gherkin Acceptance Criteria
-│   └── API_SPECIFICATION.md         # Đặc tả Giao diện Lập trình API (RESTful & WebSockets)
-│
-├── 04-operations/
-│   ├── AI_ROADMAP_AND_MLOPS.md      # Lộ trình 4 giai đoạn AI, MLOps Lifecycle & Giám sát Độ trôi Dữ liệu
-│   └── DEPLOYMENT_GUIDE.md          # Hướng dẫn Triển khai Hạ tầng (Docker Compose, Kubernetes, Biến môi trường)
-│
-└── 05-testing-and-rules/
-    ├── PRACTICE_LAB_3.md            # Bài thực hành 3: Kịch bản thử nghiệm & Hướng dẫn phân tích AI
-    ├── AI_ETHICS_AND_BIAS_RULES.md  # Khung Đạo đức AI, Quy tắc 80% (Four-Fifths Rule) & Ma trận Business Rules
-    └── ACCEPTANCE_TESTING.md        # Kế hoạch Kiểm thử Chấp nhận, Tình huống Biên & Chống Prompt Injection
-```
-
-- **Tổng quan & PRD**: [docs/01-overview/PRD.md](file:///d:/ProductDevelopment/docs/01-overview/PRD.md)
-- **Phân tích dự án**: [docs/01-overview/PROJECT_ANALYSIS.md](file:///d:/ProductDevelopment/docs/01-overview/PROJECT_ANALYSIS.md)
-- **Kiến trúc hệ thống & CSDL**: [docs/02-architecture/ARCHITECTURE.md](file:///d:/ProductDevelopment/docs/02-architecture/ARCHITECTURE.md)
-- **Luồng dữ liệu DFD**: [docs/02-architecture/DATA_FLOW.md](file:///d:/ProductDevelopment/docs/02-architecture/DATA_FLOW.md)
-- **An ninh mạng & Bảo mật**: [docs/02-architecture/SECURITY_AND_NETWORK.md](file:///d:/ProductDevelopment/docs/02-architecture/SECURITY_AND_NETWORK.md)
-- **Đặc tả tính năng**: [docs/03-specifications/FEATURE_SPECIFICATIONS.md](file:///d:/ProductDevelopment/docs/03-specifications/FEATURE_SPECIFICATIONS.md)
-- **User Stories BDD**: [docs/03-specifications/USER_STORIES.md](file:///d:/ProductDevelopment/docs/03-specifications/USER_STORIES.md)
-- **Hợp đồng API**: [docs/03-specifications/API_SPECIFICATION.md](file:///d:/ProductDevelopment/docs/03-specifications/API_SPECIFICATION.md)
-- **Lộ trình AI & MLOps**: [docs/04-operations/AI_ROADMAP_AND_MLOPS.md](file:///d:/ProductDevelopment/docs/04-operations/AI_ROADMAP_AND_MLOPS.md)
-- **Hướng dẫn triển khai**: [docs/04-operations/DEPLOYMENT_GUIDE.md](file:///d:/ProductDevelopment/docs/04-operations/DEPLOYMENT_GUIDE.md)
-- **Bài thực hành 3**: [docs/05-testing-and-rules/PRACTICE_LAB_3.md](file:///d:/ProductDevelopment/docs/05-testing-and-rules/PRACTICE_LAB_3.md)
-- **Quy tắc Đạo đức AI**: [docs/05-testing-and-rules/AI_ETHICS_AND_BIAS_RULES.md](file:///d:/ProductDevelopment/docs/05-testing-and-rules/AI_ETHICS_AND_BIAS_RULES.md)
-- **Kiểm thử chấp nhận**: [docs/05-testing-and-rules/ACCEPTANCE_TESTING.md](file:///d:/ProductDevelopment/docs/05-testing-and-rules/ACCEPTANCE_TESTING.md)
