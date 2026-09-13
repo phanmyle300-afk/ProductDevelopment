@@ -112,10 +112,28 @@ npm run typecheck
 
 ---
 
-### Docs
-- **Product**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
-- **Research notes**: [docs/RESEARCH.md](docs/RESEARCH.md)
-- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md)
+### 📚 Giáo Trình & Bài Thực Hành (Course Curriculum & Labs)
+
+- **Chương 2 — Kỹ thuật viết câu lệnh (Prompt Engineering)**: [docs/CHUONG_2_KY_THUAT_VIET_CAU_LENH.md](docs/CHUONG_2_KY_THUAT_VIET_CAU_LENH.md)
+  - Thực hành 2.1 - 2.7: Cấu trúc prompt, Zero/Few-shot, CoT, ToT, Prompt Patterns, Context Engineering, Structured Outputs, Injection Defense.
+  - Chạy thực nghiệm Lab 2:
+    ```powershell
+    python scripts/lab2_prompt_engineering.py
+    ```
+
+- **Chương 3 — AI trong Phân tích Yêu cầu & Sản phẩm**: [docs/CHUONG_3_AI_TRONG_PHAN_TICH_YEU_CAU_SAN_PHAM.md](docs/CHUONG_3_AI_TRONG_PHAN_TICH_YEU_CAU_SAN_PHAM.md)
+  - Thực hành 3.1 - 3.5: Product Discovery (Empathy Map, Lean Canvas, OST), PRD & OKRs, Requirements Analysis (MoSCoW, NFRs, EEOC Four-Fifths), BDD Gherkin User Stories, Feature Specs & API Contracts.
+  - Chạy demo sản phẩm Lab 3:
+    ```powershell
+    python scripts/lab3_product_demo.py
+    ```
+
+---
+
+### 📖 Bộ Tài Liệu Kỹ Thuật (Technical Docs)
+- **Product Requirements & Specifications**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
+- **Research Notes & Market Discovery**: [docs/RESEARCH.md](docs/RESEARCH.md)
+- **System Architecture & Data Schema**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **AI Roadmap & MLOps Operations**: [docs/ROADMAP.md](docs/ROADMAP.md)
 
 
