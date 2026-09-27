@@ -1,5 +1,5 @@
 // TalentScout - Core Mock Data & Scoring Knowledge Base
-// Phục vụ ATS Studio & LLM Screening Engine
+// Phục vụ ATS Studio, Live Criteria Calibrator & LLM Screening Engine
 
 const JOB_REQUISITION = {
   job_id: "JOB-FS-2026",
@@ -7,7 +7,7 @@ const JOB_REQUISITION = {
   department: "Core Product Engineering",
   level: "Senior Level",
   location: "TP. Hồ Chí Minh (Hybrid / Remote-friendly)",
-  salary_range: "2,500$ - 3,500$ / month",
+  salary_range: "$2,500 - $3,500 / tháng",
   min_experience_years: 4.0,
   min_education: "Cử nhân (Bachelor of CS/SE)",
   mandatory_skills: ["Python", "FastAPI", "React", "Docker"],
@@ -35,6 +35,8 @@ const INITIAL_CANDIDATES = [
     stage: "screened",
     overall_score: 92,
     category: "STRONG_HIRE",
+    is_qualified: true,
+    email_status: "none", // 'none' | 'sent_invite' | 'sent_reject'
     applied_date: "2026-09-12",
     summary: "Kỹ sư Fullstack với 4.5 năm kinh nghiệm xây dựng hệ thống FinTech xử lý giao dịch cao bằng FastAPI và React. Dày dặn kinh nghiệm triển khai Docker và kiến trúc Microservices.",
     skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL", "Redis", "Git", "Linux", "TypeScript"],
@@ -70,12 +72,14 @@ const INITIAL_CANDIDATES = [
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80",
     email: "mai.nguyen.frontend@email.com",
     phone: "0988.765.432",
-    university: "Đại học Khoa học Tự nhiên",
+    university: "Đại học Khoa học Tự nhiên TP.HCM",
     degree: "Cử nhân Kỹ thuật Phần mềm",
     experience_years: 3.2,
     stage: "applied",
-    overall_score: 68,
+    overall_score: 58,
     category: "CONSIDER",
+    is_qualified: false,
+    email_status: "none",
     applied_date: "2026-09-14",
     summary: "Frontend Developer 3.2 năm kinh nghiệm chuyên sâu về React, TypeScript và tối ưu hóa trải nghiệm UI/UX. Đang học hỏi thêm về Python backend.",
     skills: ["React", "TypeScript", "HTML/CSS", "Redux", "Node.js", "PostgreSQL", "TailwindCSS"],
@@ -116,6 +120,8 @@ const INITIAL_CANDIDATES = [
     stage: "interview",
     overall_score: 88,
     category: "STRONG_HIRE",
+    is_qualified: true,
+    email_status: "sent_invite",
     applied_date: "2026-09-10",
     summary: "Senior Backend / Cloud Engineer 5 năm kinh nghiệm với Python, kiến trúc phân tán FastAPI, Docker và Kubernetes trên AWS.",
     skills: ["Python", "FastAPI", "Docker", "AWS", "Kubernetes", "PostgreSQL", "Redis", "Kafka"],
@@ -129,12 +135,12 @@ const INITIAL_CANDIDATES = [
     missing_mandatory: ["React"],
     missing_preferred: ["TypeScript"],
     strengths: [
-      "Kinh nghiệm 5 năm dày dặn, vượt yêu cầu vị trí; bằng Thạc sĩ Khoa học Dữ liệu.",
+      "Kinh nghiệm 5 năm dày dặn, vượt yêu cầu vị trí; sở hữu bằng Thạc sĩ Khoa học Dữ liệu.",
       "Cực mạnh về Backend Python, FastAPI, kiến trúc chịu tải phân tán, Docker, K8s và AWS.",
       "Điểm ngữ nghĩa kỹ thuật rất cao (86%), phù hợp làm Core Engineering."
     ],
     skill_gaps: [
-      "Thiếu kỹ năng React trong phần bắt buộc, chủ yếu mạnh về Backend API và hạ tầng Cloud."
+      "Thiếu kỹ năng React trong phần bắt buộc, chủ yếu chuyên sâu về Backend API và hạ tầng Cloud."
     ],
     interview_questions: [
       "Vị trí này đòi hỏi Fullstack làm cả giao diện React, kinh nghiệm làm việc của bạn với các nhóm Frontend như thế nào?",
@@ -155,8 +161,10 @@ const INITIAL_CANDIDATES = [
     stage: "offer",
     overall_score: 86,
     category: "STRONG_HIRE",
+    is_qualified: true,
+    email_status: "sent_invite",
     applied_date: "2026-09-08",
-    summary: "Fullstack Developer 4 năm kinh nghiệm với Python/Django/FastAPI và React/TypeScript. Đã dẫn dắt phát triển hệ thống quản lý tuyển dụng nội bộ.",
+    summary: "Fullstack Developer 4 năm kinh nghiệm với Python/Django/FastAPI và React/TypeScript. Đã từng dẫn dắt phát triển hệ thống quản lý tuyển dụng nội bộ.",
     skills: ["Python", "FastAPI", "React", "Docker", "TypeScript", "PostgreSQL", "Git", "CI/CD"],
     score_breakdown: {
       skills: 90,
@@ -193,6 +201,8 @@ const INITIAL_CANDIDATES = [
     stage: "rejected",
     overall_score: 42,
     category: "NOT_MATCH",
+    is_qualified: false,
+    email_status: "sent_reject",
     applied_date: "2026-09-13",
     summary: "Junior Developer 1.5 năm kinh nghiệm, yêu thích công nghệ mới, đã làm quen với Python cơ bản và HTML/CSS.",
     skills: ["Python", "HTML/CSS", "JavaScript", "MySQL", "Git"],
@@ -225,12 +235,14 @@ const INITIAL_CANDIDATES = [
     avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=160&q=80",
     email: "giahung.do@devlab.io",
     phone: "0963.221.144",
-    university: "Đại học Sư phạm Kỹ thuật",
+    university: "Đại học Sư phạm Kỹ thuật TP.HCM",
     degree: "Kỹ sư Công nghệ Thông tin",
     experience_years: 4.2,
     stage: "screened",
     overall_score: 79,
     category: "INTERVIEW",
+    is_qualified: true,
+    email_status: "none",
     applied_date: "2026-09-11",
     summary: "Fullstack Web Developer 4.2 năm kinh nghiệm làm việc với Python, React, PostgreSQL và Docker trong các dự án thương mại điện tử.",
     skills: ["Python", "Django", "FastAPI", "React", "Docker", "PostgreSQL", "Bootstrap"],
@@ -269,6 +281,7 @@ const SAMPLE_PRESETS = [
     skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL", "Redis", "TypeScript", "AWS", "PyTorch"],
     score: 95,
     category: "STRONG_HIRE",
+    is_qualified: true,
     summary: "Lead Fullstack & AI Engineer với 5.5 năm kinh nghiệm, tích hợp LLM vào ứng dụng SaaS thực tế.",
     university: "Đại học Bách Khoa TP.HCM"
   },
@@ -278,9 +291,10 @@ const SAMPLE_PRESETS = [
     filesize: "890 KB",
     exp: 3.5,
     skills: ["React", "TypeScript", "Redux", "TailwindCSS", "Next.js", "Docker"],
-    score: 72,
-    category: "INTERVIEW",
-    summary: "Frontend Engineer 3.5 năm kinh nghiệm chuyên sâu về React/Next.js, đam mê thiết kế UI/UX.",
+    score: 62,
+    category: "CONSIDER",
+    is_qualified: false,
+    summary: "Frontend Engineer 3.5 năm kinh nghiệm chuyên sâu về React/Next.js, đam mê thiết kế UI/UX nhưng thiếu kinh nghiệm Backend Python.",
     university: "Đại học Công nghệ Thông tin - ĐHQG TP.HCM"
   },
   {
@@ -291,7 +305,8 @@ const SAMPLE_PRESETS = [
     skills: ["Python", "Flask", "SQLite", "Git"],
     score: 38,
     category: "NOT_MATCH",
-    summary: "Sinh viên mới tốt nghiệp ngành CNTT, nắm vững kiến thức lập trình cơ bản và Python.",
+    is_qualified: false,
+    summary: "Sinh viên mới tốt nghiệp ngành CNTT, nắm vững kiến thức lập trình cơ bản và Python cơ bản.",
     university: "Đại học Giao Thông Vận Tải"
   }
 ];

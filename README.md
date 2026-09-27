@@ -131,7 +131,8 @@ npm run typecheck
 ---
 
 ### 📖 Bộ Tài Liệu Kỹ Thuật (Technical Docs)
-- **Product Requirements & Specifications**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
+- **Product Requirements Document (Master PRD)**: [docs/PRD.md](docs/PRD.md)
+- **UI/UX Design System & Wireframes**: [docs/UI_UX_DESIGN.md](docs/UI_UX_DESIGN.md)
 - **Research Notes & Market Discovery**: [docs/RESEARCH.md](docs/RESEARCH.md)
 - **System Architecture & Data Schema**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **AI Roadmap & MLOps Operations**: [docs/ROADMAP.md](docs/ROADMAP.md)

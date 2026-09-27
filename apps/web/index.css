@@ -1092,6 +1092,447 @@ input:checked + .slider:before {
   border-left: 4px solid var(--amber);
 }
 
+/* ==========================================================================
+   New Features & Upgrades: Batch Email Dispatcher, Weights Calibrator, Table View
+   ========================================================================== */
+
+/* Batch Auto-Email Button */
+.btn-auto-email {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+  transition: var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+.btn-auto-email:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+  filter: brightness(1.08);
+}
+.btn-auto-email:active {
+  transform: translateY(0);
+}
+.btn-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #FEF08A;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #FEF08A;
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+/* View Mode Switcher */
+.view-toggle-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 2px;
+}
+.btn-view-toggle {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition-fast);
+}
+.btn-view-toggle:hover {
+  color: #FFFFFF;
+}
+.btn-view-toggle.active {
+  background: rgba(99, 102, 241, 0.25);
+  color: #FFFFFF;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+/* Live Weight Calibrator Drawer */
+.criteria-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(13, 19, 34, 0.95);
+  border: 1px solid var(--border-active);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  animation: slideDown 0.25s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.criteria-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.weights-summary-status {
+  font-size: 0.8125rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+}
+.weights-sliders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.weight-slider-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.slider-header strong {
+  color: var(--primary-light);
+  font-family: 'JetBrains Mono', monospace;
+}
+.weight-slider-box input[type="range"] {
+  accent-color: var(--primary);
+  height: 5px;
+}
+.weights-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+.weights-notice-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Card Badges: Qualification & Email Status */
+.card-meta-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0;
+}
+.card-qualification-pill {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.card-qualification-pill.qualified {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.card-qualification-pill.unqualified {
+  background: rgba(244, 63, 94, 0.15);
+  color: #FB7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.card-email-status-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.card-email-status-pill.sent_invite {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.card-email-status-pill.sent_reject {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.card-email-status-pill.none {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Card Action Buttons Upgrade */
+.card-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-subtle);
+}
+.btn-card-action {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  transition: var(--transition-fast);
+}
+.btn-card-action:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #FFFFFF;
+}
+.btn-card-email-action {
+  background: rgba(245, 158, 11, 0.1);
+  color: #FBBF24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.btn-card-email-action:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   Table / Data Grid View
+   ========================================================================== */
+.table-view-wrapper {
+  padding: 0 2rem 2.5rem 2rem;
+}
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow);
+}
+.ats-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+.ats-data-table th {
+  background: rgba(13, 19, 34, 0.9);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ats-data-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+}
+.ats-data-table tbody tr {
+  transition: var(--transition-fast);
+}
+.ats-data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.table-cand-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.table-cand-cell img, .table-cand-cell .table-avatar-blind {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+}
+.table-avatar-blind {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.table-cand-name {
+  font-weight: 600;
+  color: #FFFFFF;
+}
+.table-cand-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Batch Auto-Email Dispatcher Modal
+   ========================================================================== */
+.batch-modal-wide {
+  max-width: 960px;
+}
+.batch-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 768px) {
+  .batch-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.batch-group-card {
+  background: rgba(13, 19, 34, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.batch-group-card.qualified-group {
+  border-top: 3px solid var(--emerald);
+}
+.batch-group-card.unqualified-group {
+  border-top: 3px solid var(--rose);
+}
+.batch-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.group-dot.green {
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+}
+.group-dot.red {
+  background: var(--rose);
+  box-shadow: 0 0 8px var(--rose);
+}
+.batch-action-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+.batch-action-pill.pass {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+}
+.batch-action-pill.reject {
+  background: rgba(244, 63, 94, 0.15);
+  color: #FB7185;
+}
+.batch-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.batch-cand-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+.batch-cand-item .cand-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+.batch-progress-box {
+  background: #090E1A;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+.batch-console-log {
+  background: #050811;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #A5F3FC;
+  height: 110px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.batch-console-log .log-success {
+  color: #34D399;
+}
+.batch-console-log .log-warn {
+  color: #FBBF24;
+}
+.batch-console-log .log-info {
+  color: #94A3B8;
+}
+.batch-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+.batch-stats-summary {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .top-navbar {
@@ -1100,8 +1541,9 @@ input:checked + .slider:before {
   .navbar-center-stats {
     display: none;
   }
-  .hero-banner, .toolbar-container, .kanban-board-wrapper {
+  .hero-banner, .toolbar-container, .kanban-board-wrapper, .table-view-wrapper {
     padding-left: 1rem;
     padding-right: 1rem;
   }
 }
+

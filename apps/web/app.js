@@ -1,5 +1,6 @@
 // TalentScout ATS Studio - Application Logic
-// Handles Kanban Drag-and-Drop, Blind Screening Mode, XAI Breakdown & AI Email Generator
+// Features: Kanban Drag-and-Drop, Table Grid View, Blind Screening Mode,
+// Live Weight Calibrator, XAI Breakdown & Batch Auto-Email Dispatcher
 
 document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
@@ -7,13 +8,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   let candidates = JSON.parse(JSON.stringify(INITIAL_CANDIDATES));
   let isBlindMode = false;
+  let currentView = 'kanban'; // 'kanban' | 'table'
   let searchQuery = '';
   let minScore = 0;
   let verdictFilter = 'ALL';
+  let qualificationFilter = 'ALL'; // 'ALL' | 'QUALIFIED' | 'UNQUALIFIED'
+  let emailStatusFilter = 'ALL'; // 'ALL' | 'sent_invite' | 'sent_reject' | 'none'
   let sortMode = 'score_desc';
   let selectedCandidate = null;
   let emailTone = 'invite'; // 'invite' | 'reject'
   let draggedCandidateId = null;
+
+  // AI Criteria Weights State
+  let currentWeights = {
+    skills: 40,
+    experience: 30,
+    education: 15,
+    semantic: 15
+  };
 
   // DOM Elements
   const kanbanColumns = {
@@ -32,8 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
     rejected: document.getElementById('count-rejected'),
     total: document.getElementById('total-cand-count'),
     strongHire: document.getElementById('strong-hire-count'),
-    avgScore: document.getElementById('avg-score-display')
+    qualifiedRate: document.getElementById('qualified-rate-count'),
+    emailOutreach: document.getElementById('email-outreach-count'),
+    dirStat: document.getElementById('dir-stat-display')
   };
+
+  // View Switchers
+  const btnViewKanban = document.getElementById('btn-view-kanban');
+  const btnViewTable = document.getElementById('btn-view-table');
+  const kanbanViewWrapper = document.getElementById('kanban-view-wrapper');
+  const tableViewWrapper = document.getElementById('table-view-wrapper');
+  const candidatesTableBody = document.getElementById('candidates-table-body');
 
   // Blind Mode Elements
   const blindCheckbox = document.getElementById('blind-mode-checkbox');
@@ -44,10 +65,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const minScoreSlider = document.getElementById('min-score-slider');
   const minScoreVal = document.getElementById('min-score-val');
   const verdictSelect = document.getElementById('verdict-filter-select');
+  const qualSelect = document.getElementById('qualification-filter-select');
+  const emailStatusSelect = document.getElementById('email-status-filter-select');
   const sortSelect = document.getElementById('sort-filter-select');
   const btnResetFilters = document.getElementById('btn-reset-filters');
 
-  // Modals
+  // Criteria & Weights Elements
+  const btnToggleCriteria = document.getElementById('btn-toggle-criteria');
+  const criteriaSummaryCard = document.getElementById('criteria-summary-card');
+  const inputWeightSkills = document.getElementById('input-weight-skills');
+  const inputWeightExp = document.getElementById('input-weight-exp');
+  const inputWeightEdu = document.getElementById('input-weight-edu');
+  const inputWeightSem = document.getElementById('input-weight-sem');
+  const valWeightSkills = document.getElementById('val-weight-skills');
+  const valWeightExp = document.getElementById('val-weight-exp');
+  const valWeightEdu = document.getElementById('val-weight-edu');
+  const valWeightSem = document.getElementById('val-weight-sem');
+  const totalWeightIndicator = document.getElementById('total-weight-indicator');
+  const btnApplyWeights = document.getElementById('btn-apply-weights');
+  const btnResetWeights = document.getElementById('btn-reset-weights');
+
+  // Single Candidate Modals
   const modalXaiOverlay = document.getElementById('modal-xai-overlay');
   const btnCloseXai = document.getElementById('btn-close-xai-modal');
   const btnXaiToEmail = document.getElementById('btn-xai-to-email');
@@ -64,6 +102,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCopyEmail = document.getElementById('btn-copy-email');
   const btnSendEmail = document.getElementById('btn-send-email-confirm');
 
+  // Batch Auto-Email Modal
+  const modalBatchEmailOverlay = document.getElementById('modal-batch-email-overlay');
+  const btnOpenBatchEmail = document.getElementById('btn-open-auto-email-modal');
+  const btnCloseBatchEmail = document.getElementById('btn-close-batch-email-modal');
+  const btnCancelBatchEmail = document.getElementById('btn-cancel-batch-email');
+  const btnExecuteBatchDispatch = document.getElementById('btn-execute-batch-dispatch');
+  const batchListPass = document.getElementById('batch-list-pass');
+  const batchListReject = document.getElementById('batch-list-reject');
+  const batchCountPass = document.getElementById('batch-count-pass');
+  const batchCountReject = document.getElementById('batch-count-reject');
+  const batchProgressBox = document.getElementById('batch-progress-box');
+  const batchStatusLabel = document.getElementById('batch-status-label');
+  const batchPercentLabel = document.getElementById('batch-percent-label');
+  const batchProgressBarFill = document.getElementById('batch-progress-bar-fill');
+  const batchConsoleLog = document.getElementById('batch-console-log');
+  const batchSummaryStatsText = document.getElementById('batch-summary-stats-text');
+
+  // Upload Modal Elements
   const modalUploadOverlay = document.getElementById('modal-upload-overlay');
   const btnOpenUploadModal = document.getElementById('btn-open-upload-modal');
   const btnCloseUpload = document.getElementById('btn-close-upload-modal');
@@ -99,11 +155,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       toast.classList.remove('active');
       setTimeout(() => toast.remove(), 300);
-    }, 3500);
+    }, 3800);
   }
 
   // =========================================================================
-  // Score Badge Helper
+  // Score Badge & Tag Helpers
   // =========================================================================
   function getScoreBadgeClass(score) {
     if (score >= 85) return 'high';
@@ -126,22 +182,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getQualificationTag(isQualified) {
+    if (isQualified) {
+      return '<span class="card-qualification-pill qualified" title="Đáp ứng chuẩn kỹ năng cốt lõi và kinh nghiệm">🟢 ĐẠT YÊU CẦU</span>';
+    } else {
+      return '<span class="card-qualification-pill unqualified" title="Chưa đáp ứng đủ kỹ năng bắt buộc hoặc số năm kinh nghiệm">🔴 CHƯA PHÙ HỢP</span>';
+    }
+  }
+
+  function getEmailStatusTag(status) {
+    switch (status) {
+      case 'sent_invite':
+        return '<span class="card-email-status-pill sent_invite">📨 Đã gửi Thư Mời</span>';
+      case 'sent_reject':
+        return '<span class="card-email-status-pill sent_reject">🤝 Đã gửi Thư Góp Ý</span>';
+      case 'none':
+      default:
+        return '<span class="card-email-status-pill none">⏳ Chưa phản hồi</span>';
+    }
+  }
+
+  // =========================================================================
+  // Dynamic Score Recalculation Engine
+  // =========================================================================
+  function recalculateAllScores() {
+    const totalW = currentWeights.skills + currentWeights.experience + currentWeights.education + currentWeights.semantic;
+    if (totalW === 0) return;
+
+    const wSkills = currentWeights.skills / totalW;
+    const wExp = currentWeights.experience / totalW;
+    const wEdu = currentWeights.education / totalW;
+    const wSem = currentWeights.semantic / totalW;
+
+    candidates.forEach(cand => {
+      // Calculate weighted score
+      let rawScore = (
+        cand.score_breakdown.skills * wSkills +
+        cand.score_breakdown.experience * wExp +
+        cand.score_breakdown.education * wEdu +
+        cand.score_breakdown.semantic * wSem
+      );
+
+      // Penalty check: if missing mandatory skills, deduct 15 points
+      if (cand.missing_mandatory && cand.missing_mandatory.length > 0) {
+        rawScore = Math.max(25, rawScore - 12);
+      }
+
+      cand.overall_score = Math.round(rawScore);
+
+      // Category derivation
+      if (cand.overall_score >= 85 && (!cand.missing_mandatory || cand.missing_mandatory.length === 0)) {
+        cand.category = 'STRONG_HIRE';
+        cand.is_qualified = true;
+      } else if (cand.overall_score >= 70) {
+        cand.category = 'INTERVIEW';
+        cand.is_qualified = (!cand.missing_mandatory || cand.missing_mandatory.length === 0);
+      } else if (cand.overall_score >= 50) {
+        cand.category = 'CONSIDER';
+        cand.is_qualified = false;
+      } else {
+        cand.category = 'NOT_MATCH';
+        cand.is_qualified = false;
+      }
+    });
+
+    renderBoard();
+    if (currentView === 'table') renderTableView();
+  }
+
   // =========================================================================
   // Render Kanban Cards & Update Stats
   // =========================================================================
-  function renderBoard() {
-    // Clear all column containers
-    Object.values(kanbanColumns).forEach(col => col.innerHTML = '');
-
-    // Filter candidates
-    let filtered = candidates.filter(cand => {
-      // Name & skill search
+  function getFilteredCandidates() {
+    return candidates.filter(cand => {
+      // Name, blind ID & skill search
       const query = searchQuery.toLowerCase().trim();
       const matchName = isBlindMode 
         ? cand.blind_id.toLowerCase().includes(query)
         : cand.name.toLowerCase().includes(query);
       const matchSkill = cand.skills.some(s => s.toLowerCase().includes(query));
-      const matchSearch = query === '' || matchName || matchSkill;
+      const matchUni = cand.university.toLowerCase().includes(query);
+      const matchSearch = query === '' || matchName || matchSkill || matchUni;
 
       // Score filter
       const matchScore = cand.overall_score >= minScore;
@@ -149,11 +270,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // Category filter
       const matchVerdict = (verdictFilter === 'ALL') || (cand.category === verdictFilter);
 
-      return matchSearch && matchScore && matchVerdict;
-    });
+      // Qualification filter
+      let matchQual = true;
+      if (qualificationFilter === 'QUALIFIED') matchQual = cand.is_qualified;
+      if (qualificationFilter === 'UNQUALIFIED') matchQual = !cand.is_qualified;
 
-    // Sort candidates
-    filtered.sort((a, b) => {
+      // Email status filter
+      const matchEmail = (emailStatusFilter === 'ALL') || (cand.email_status === emailStatusFilter);
+
+      return matchSearch && matchScore && matchVerdict && matchQual && matchEmail;
+    }).sort((a, b) => {
       if (sortMode === 'score_desc') return b.overall_score - a.overall_score;
       if (sortMode === 'score_asc') return a.overall_score - b.overall_score;
       if (sortMode === 'exp_desc') return b.experience_years - a.experience_years;
@@ -164,16 +290,25 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return 0;
     });
+  }
 
-    // Count trackers
+  function renderBoard() {
+    // Clear all column containers
+    Object.values(kanbanColumns).forEach(col => col.innerHTML = '');
+
+    const filtered = getFilteredCandidates();
+
+    // Stats calculations
     const stageCounts = { applied: 0, screened: 0, interview: 0, offer: 0, rejected: 0 };
     let strongHireCount = 0;
-    let totalScoreSum = 0;
+    let qualifiedCount = 0;
+    let emailSentCount = 0;
 
     candidates.forEach(c => {
       if (stageCounts[c.stage] !== undefined) stageCounts[c.stage]++;
       if (c.category === 'STRONG_HIRE') strongHireCount++;
-      totalScoreSum += c.overall_score;
+      if (c.is_qualified) qualifiedCount++;
+      if (c.email_status && c.email_status !== 'none') emailSentCount++;
     });
 
     // Update Top Stats
@@ -184,9 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
     countElements.rejected.textContent = stageCounts.rejected;
     countElements.total.textContent = candidates.length;
     countElements.strongHire.textContent = strongHireCount;
-    countElements.avgScore.textContent = candidates.length > 0 
-      ? (totalScoreSum / candidates.length).toFixed(1) + '%' 
-      : '0%';
+
+    const qualifiedPct = candidates.length > 0 ? Math.round((qualifiedCount / candidates.length) * 100) : 0;
+    countElements.qualifiedRate.textContent = `${qualifiedPct}%`;
+    countElements.emailOutreach.textContent = `${emailSentCount}/${candidates.length}`;
 
     // Populate filtered cards into columns
     filtered.forEach(cand => {
@@ -202,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (colElem.children.length === 0) {
         const emptyNotice = document.createElement('div');
         emptyNotice.style.cssText = 'padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.8125rem; border: 1px dashed rgba(255,255,255,0.06); border-radius: 12px;';
-        emptyNotice.textContent = 'Kéo thả ứng viên vào đây hoặc chưa có hồ sơ';
+        emptyNotice.textContent = 'Chưa có hồ sơ trong giai đoạn này';
         colElem.appendChild(emptyNotice);
       }
     });
@@ -250,7 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      ${getVerdictTag(cand.category)}
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+        ${getVerdictTag(cand.category)}
+        ${getQualificationTag(cand.is_qualified)}
+      </div>
+
+      <div class="card-meta-tags-row">
+        ${getEmailStatusTag(cand.email_status)}
+      </div>
 
       <div class="card-skills-list">
         ${skillsSnippet}
@@ -262,9 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
           Chi Tiết XAI
         </button>
-        <button class="btn-card-action btn-card-email btn-open-email" title="Soạn email phản hồi tự động">
+        <button class="btn-card-action btn-card-email-action btn-open-email" title="Tự động soạn thảo email phản hồi phù hợp với kết quả">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-          Email AI
+          Phản Hồi Mail
         </button>
       </div>
     `;
@@ -293,11 +436,99 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmail = card.querySelector('.btn-open-email');
     btnEmail.addEventListener('click', (e) => {
       e.stopPropagation();
-      openEmailModal(cand);
+      // Smart detection: if qualified -> open invite tone, if not -> open reject tone
+      openEmailModal(cand, cand.is_qualified ? 'invite' : 'reject');
     });
 
     return card;
   }
+
+  // =========================================================================
+  // Table View Render
+  // =========================================================================
+  function renderTableView() {
+    candidatesTableBody.innerHTML = '';
+    const filtered = getFilteredCandidates();
+
+    if (filtered.length === 0) {
+      candidatesTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 3rem;">Không tìm thấy ứng viên phù hợp với bộ lọc hiện tại.</td></tr>`;
+      return;
+    }
+
+    filtered.forEach(cand => {
+      const tr = document.createElement('tr');
+      const displayName = isBlindMode ? cand.blind_id : cand.name;
+      const displaySub = isBlindMode ? `Exp: ${cand.experience_years} năm` : `${cand.experience_years} năm KN • ${cand.university}`;
+      const avatarHtml = isBlindMode
+        ? `<div class="table-avatar-blind"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`
+        : `<img src="${cand.avatar}" alt="${cand.name}">`;
+
+      const stageLabels = {
+        applied: '1. Mới Ứng Tuyển',
+        screened: '2. Đã Sàng Lọc',
+        interview: '3. Mời Phỏng Vấn',
+        offer: '4. Đề Nghị Việc',
+        rejected: '5. Từ Chối'
+      };
+
+      tr.innerHTML = `
+        <td>
+          <div class="table-cand-cell">
+            ${avatarHtml}
+            <div>
+              <div class="table-cand-name">${displayName}</div>
+              <div class="table-cand-sub">${displaySub}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <strong style="font-size: 1rem; color: ${cand.overall_score >= 80 ? 'var(--emerald)' : cand.overall_score >= 60 ? 'var(--amber)' : 'var(--rose)'}; font-family: 'JetBrains Mono', monospace;">
+            ${cand.overall_score}%
+          </strong>
+        </td>
+        <td>${getVerdictTag(cand.category)}</td>
+        <td>${getQualificationTag(cand.is_qualified)}</td>
+        <td>${getEmailStatusTag(cand.email_status)}</td>
+        <td><span class="meta-pill" style="font-size: 0.6875rem;">${stageLabels[cand.stage] || cand.stage}</span></td>
+        <td>
+          <div style="display: flex; gap: 0.25rem; flex-wrap: wrap; max-width: 220px;">
+            ${cand.matched_skills.slice(0, 3).map(s => `<span class="card-skill-chip matched" style="font-size: 0.65rem;">${s}</span>`).join('')}
+            ${cand.matched_skills.length > 3 ? `<span class="card-skill-chip" style="font-size: 0.65rem;">+${cand.matched_skills.length - 3}</span>` : ''}
+          </div>
+        </td>
+        <td>
+          <div style="display: flex; gap: 0.35rem;">
+            <button class="btn-card-action btn-tbl-xai" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">XAI</button>
+            <button class="btn-card-action btn-card-email-action btn-tbl-email" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">Email</button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-tbl-xai').addEventListener('click', () => openXaiModal(cand));
+      tr.querySelector('.btn-tbl-email').addEventListener('click', () => openEmailModal(cand, cand.is_qualified ? 'invite' : 'reject'));
+
+      candidatesTableBody.appendChild(tr);
+    });
+  }
+
+  // Switch between Kanban & Table views
+  btnViewKanban.addEventListener('click', () => {
+    currentView = 'kanban';
+    btnViewKanban.classList.add('active');
+    btnViewTable.classList.remove('active');
+    kanbanViewWrapper.style.display = 'block';
+    tableViewWrapper.style.display = 'none';
+    renderBoard();
+  });
+
+  btnViewTable.addEventListener('click', () => {
+    currentView = 'table';
+    btnViewTable.classList.add('active');
+    btnViewKanban.classList.remove('active');
+    kanbanViewWrapper.style.display = 'none';
+    tableViewWrapper.style.display = 'block';
+    renderTableView();
+  });
 
   // =========================================================================
   // Drag and Drop Pipeline Handling
@@ -310,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     col.addEventListener('dragleave', (e) => {
-      // Only remove if leaving column bounds
       if (!col.contains(e.relatedTarget)) {
         col.classList.remove('drag-over');
       }
@@ -326,9 +556,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (candId && targetStage) {
         const candidate = candidates.find(c => c.id === candId);
         if (candidate && candidate.stage !== targetStage) {
-          const oldStage = candidate.stage;
           candidate.stage = targetStage;
           renderBoard();
+          if (currentView === 'table') renderTableView();
 
           const stageNames = {
             applied: '1. Mới Ứng Tuyển',
@@ -341,13 +571,17 @@ document.addEventListener('DOMContentLoaded', () => {
           const candLabel = isBlindMode ? candidate.blind_id : candidate.name;
           showToast(`Đã chuyển ${candLabel} sang "${stageNames[targetStage]}"`, 'success');
 
-          // If moved to rejected or interview, prompt email outreach
-          if (targetStage === 'interview' || targetStage === 'rejected') {
+          // If moved to interview or rejected, prompt email auto-outreach
+          if (targetStage === 'interview' && candidate.email_status !== 'sent_invite') {
             setTimeout(() => {
-              if (confirm(`Bạn có muốn AI tự động soạn thảo email cho ứng viên ${candLabel} không?`)) {
-                openEmailModal(candidate, targetStage === 'interview' ? 'invite' : 'reject');
-              }
-            }, 300);
+              openEmailModal(candidate, 'invite');
+              showToast(`🎯 AI đã chuẩn bị sẵn Thư Mời Phỏng Vấn cho ${candLabel}!`, 'info');
+            }, 350);
+          } else if (targetStage === 'rejected' && candidate.email_status !== 'sent_reject') {
+            setTimeout(() => {
+              openEmailModal(candidate, 'reject');
+              showToast(`🤝 AI đã chuẩn bị sẵn Thư Từ Chối Xây Dựng cho ${candLabel}!`, 'info');
+            }, 350);
           }
         }
       }
@@ -362,22 +596,73 @@ document.addEventListener('DOMContentLoaded', () => {
     blindCheckbox.checked = active;
     if (active) {
       blindToggleBox.classList.add('active');
-      showToast('🛡️ Chế độ Blind Screening KÍCH HOẠT: Toàn bộ thông tin PII đã được mã hóa ẩn danh.', 'warning');
+      showToast('🛡️ Chế độ Blind Screening KÍCH HOẠT: Toàn bộ thông tin PII đã được ẩn danh.', 'warning');
     } else {
       blindToggleBox.classList.remove('active');
       showToast('Chế độ Blind Screening đã TẮT: Hiển thị đầy đủ danh tính ứng viên.', 'info');
     }
     renderBoard();
+    if (currentView === 'table') renderTableView();
   }
 
-  blindCheckbox.addEventListener('change', (e) => {
-    setBlindMode(e.target.checked);
+  blindCheckbox.addEventListener('change', (e) => setBlindMode(e.target.checked));
+  blindToggleBox.addEventListener('click', (e) => {
+    if (e.target !== blindCheckbox) setBlindMode(!isBlindMode);
   });
 
-  blindToggleBox.addEventListener('click', (e) => {
-    if (e.target !== blindCheckbox) {
-      setBlindMode(!isBlindMode);
+  // =========================================================================
+  // Criteria & Weights Calibration Handlers
+  // =========================================================================
+  btnToggleCriteria.addEventListener('click', () => {
+    if (criteriaSummaryCard.style.display === 'none') {
+      criteriaSummaryCard.style.display = 'flex';
+      btnToggleCriteria.classList.add('btn-primary');
+      btnToggleCriteria.classList.remove('btn-secondary');
+    } else {
+      criteriaSummaryCard.style.display = 'none';
+      btnToggleCriteria.classList.remove('btn-primary');
+      btnToggleCriteria.classList.add('btn-secondary');
     }
+  });
+
+  function updateWeightsUI() {
+    valWeightSkills.textContent = `${inputWeightSkills.value}%`;
+    valWeightExp.textContent = `${inputWeightExp.value}%`;
+    valWeightEdu.textContent = `${inputWeightEdu.value}%`;
+    valWeightSem.textContent = `${inputWeightSem.value}%`;
+
+    const total = parseInt(inputWeightSkills.value) + parseInt(inputWeightExp.value) + parseInt(inputWeightEdu.value) + parseInt(inputWeightSem.value);
+    totalWeightIndicator.textContent = `${total}%`;
+    if (total === 100) {
+      totalWeightIndicator.style.color = 'var(--emerald)';
+    } else {
+      totalWeightIndicator.style.color = 'var(--rose)';
+    }
+  }
+
+  [inputWeightSkills, inputWeightExp, inputWeightEdu, inputWeightSem].forEach(input => {
+    input.addEventListener('input', updateWeightsUI);
+  });
+
+  btnApplyWeights.addEventListener('click', () => {
+    currentWeights.skills = parseInt(inputWeightSkills.value);
+    currentWeights.experience = parseInt(inputWeightExp.value);
+    currentWeights.education = parseInt(inputWeightEdu.value);
+    currentWeights.semantic = parseInt(inputWeightSem.value);
+
+    recalculateAllScores();
+    showToast(`⚡ Đã tái tính toán điểm Match Score theo bộ trọng số mới (${currentWeights.skills}/${currentWeights.experience}/${currentWeights.education}/${currentWeights.semantic})!`, 'success');
+  });
+
+  btnResetWeights.addEventListener('click', () => {
+    inputWeightSkills.value = 40;
+    inputWeightExp.value = 30;
+    inputWeightEdu.value = 15;
+    inputWeightSem.value = 15;
+    updateWeightsUI();
+    currentWeights = { skills: 40, experience: 30, education: 15, semantic: 15 };
+    recalculateAllScores();
+    showToast('Đã khôi phục bộ trọng số tuyển dụng mặc định.', 'info');
   });
 
   // =========================================================================
@@ -386,37 +671,58 @@ document.addEventListener('DOMContentLoaded', () => {
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
     renderBoard();
+    if (currentView === 'table') renderTableView();
   });
 
   minScoreSlider.addEventListener('input', (e) => {
     minScore = parseInt(e.target.value, 10);
     minScoreVal.textContent = `${minScore}%`;
     renderBoard();
+    if (currentView === 'table') renderTableView();
   });
 
   verdictSelect.addEventListener('change', (e) => {
     verdictFilter = e.target.value;
     renderBoard();
+    if (currentView === 'table') renderTableView();
+  });
+
+  qualSelect.addEventListener('change', (e) => {
+    qualificationFilter = e.target.value;
+    renderBoard();
+    if (currentView === 'table') renderTableView();
+  });
+
+  emailStatusSelect.addEventListener('change', (e) => {
+    emailStatusFilter = e.target.value;
+    renderBoard();
+    if (currentView === 'table') renderTableView();
   });
 
   sortSelect.addEventListener('change', (e) => {
     sortMode = e.target.value;
     renderBoard();
+    if (currentView === 'table') renderTableView();
   });
 
   btnResetFilters.addEventListener('click', () => {
     searchQuery = '';
     minScore = 0;
     verdictFilter = 'ALL';
+    qualificationFilter = 'ALL';
+    emailStatusFilter = 'ALL';
     sortMode = 'score_desc';
 
     searchInput.value = '';
     minScoreSlider.value = 0;
     minScoreVal.textContent = '0%';
     verdictSelect.value = 'ALL';
+    qualSelect.value = 'ALL';
+    emailStatusSelect.value = 'ALL';
     sortSelect.value = 'score_desc';
 
     renderBoard();
+    if (currentView === 'table') renderTableView();
     showToast('Đã đặt lại toàn bộ bộ lọc về mặc định.');
   });
 
@@ -434,6 +740,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('xai-score-edu').textContent = `${candidate.score_breakdown.education}%`;
     document.getElementById('xai-score-sem').textContent = `${candidate.score_breakdown.semantic}%`;
 
+    document.getElementById('lbl-xai-skills').textContent = `Kỹ Năng (${currentWeights.skills}%)`;
+    document.getElementById('lbl-xai-exp').textContent = `Kinh Nghiệm (${currentWeights.experience}%)`;
+    document.getElementById('lbl-xai-edu').textContent = `Học Vấn (${currentWeights.education}%)`;
+    document.getElementById('lbl-xai-sem').textContent = `Ngữ Nghĩa (${currentWeights.semantic}%)`;
+
     // Matched skills
     const matchedContainer = document.getElementById('xai-matched-skills-list');
     matchedContainer.innerHTML = candidate.matched_skills.map(s => 
@@ -442,10 +753,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Missing skills
     const missingContainer = document.getElementById('xai-missing-skills-list');
-    const allMissing = [...candidate.missing_mandatory, ...candidate.missing_preferred];
+    const allMissing = [...(candidate.missing_mandatory || []), ...(candidate.missing_preferred || [])];
     missingContainer.innerHTML = allMissing.map(s => {
-      const isMandatory = candidate.missing_mandatory.includes(s);
-      return `<span class="card-skill-chip" style="color: ${isMandatory ? '#FB7185' : '#FBBF24'}; border-color: ${isMandatory ? 'rgba(251,113,133,0.3)' : 'rgba(251,191,36,0.3)'};">✗ ${s} ${isMandatory ? '(Bắt buộc - Phạt 25%)' : ''}</span>`;
+      const isMandatory = (candidate.missing_mandatory || []).includes(s);
+      return `<span class="card-skill-chip" style="color: ${isMandatory ? '#FB7185' : '#FBBF24'}; border-color: ${isMandatory ? 'rgba(251,113,133,0.3)' : 'rgba(251,191,36,0.3)'};">✗ ${s} ${isMandatory ? '(Bắt buộc - Phạt điểm)' : ''}</span>`;
     }).join('') || '<span style="color: #34D399; font-size: 0.75rem;">Đầy đủ toàn bộ kỹ năng yêu cầu</span>';
 
     // Strengths
@@ -459,14 +770,12 @@ document.addEventListener('DOMContentLoaded', () => {
     modalXaiOverlay.classList.add('active');
   }
 
-  btnCloseXai.addEventListener('click', () => {
-    modalXaiOverlay.classList.remove('active');
-  });
+  btnCloseXai.addEventListener('click', () => modalXaiOverlay.classList.remove('active'));
 
   btnXaiToEmail.addEventListener('click', () => {
     if (selectedCandidate) {
       modalXaiOverlay.classList.remove('active');
-      openEmailModal(selectedCandidate, selectedCandidate.overall_score >= 65 ? 'invite' : 'reject');
+      openEmailModal(selectedCandidate, selectedCandidate.is_qualified ? 'invite' : 'reject');
     }
   });
 
@@ -477,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currIdx >= 0 && currIdx < stages.length - 1) {
       selectedCandidate.stage = stages[currIdx + 1];
       renderBoard();
+      if (currentView === 'table') renderTableView();
       modalXaiOverlay.classList.remove('active');
       showToast(`Đã chuyển ứng viên sang giai đoạn tiếp theo!`, 'success');
     } else {
@@ -485,35 +795,37 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================================================
-  // AI Outreach Email Modal Logic
+  // AI Outreach Email Logic (Single Candidate)
   // =========================================================================
   function generateEmailContent(candidate, tone) {
     const candidateName = isBlindMode ? candidate.blind_id : candidate.name;
     const jobTitle = JOB_REQUISITION.title;
     const topStrength = candidate.strengths[0] || "năng lực kỹ thuật nổi bật";
-    const topGap = candidate.skill_gaps[0] || "kinh nghiệm chuyên sâu với hạ tầng nâng cao";
+    const topGap = (candidate.skill_gaps && candidate.skill_gaps[0]) 
+      || (candidate.missing_mandatory && candidate.missing_mandatory[0] ? `kỹ năng chuyên sâu với ${candidate.missing_mandatory[0]}` : "kinh nghiệm thực chiến nâng cao");
 
     if (tone === 'invite') {
       return {
-        subject: `[TalentScout] Thư mời phỏng vấn vị trí ${jobTitle} — ${candidateName}`,
+        subject: `[TalentScout] Thư Mời Phỏng Vấn Vị Trí ${jobTitle} — ${candidateName}`,
         body: `Chào bạn ${candidateName},\n\n` +
           `Cảm ơn bạn đã quan tâm và nộp hồ sơ ứng tuyển vị trí ${jobTitle} tại TalentScout.\n\n` +
-          `Hội đồng tuyển dụng và hệ thống phân tích AI của chúng tôi đã đánh giá rất cao hồ sơ của bạn, đặc biệt là: "${topStrength}". Với độ tương thích đạt ${candidate.overall_score}%, chúng tôi tin rằng kinh nghiệm của bạn rất phù hợp với định hướng phát triển của đội ngũ Core Engineering.\n\n` +
-          `Chúng tôi trân trọng mời bạn tham dự buổi Phỏng Vấn Kỹ Thuật (Technical Round) với các khung giờ đề xuất sau:\n` +
-          `  • Khung 1: 09:30 - 10:30 Thứ Năm, ngày 18/09/2026\n` +
-          `  • Khung 2: 14:00 - 15:00 Thứ Sáu, ngày 19/09/2026\n` +
-          `  • Hình thức: Online qua Google Meet\n\n` +
-          `Vui lòng phản hồi email này và xác nhận khung giờ thuận tiện nhất đối với bạn trước 17:00 ngày mai.\n\n` +
+          `Hội đồng chuyên môn và hệ thống phân tích AI của chúng tôi đã xem xét rất kỹ hồ sơ của bạn và ghi nhận thế mạnh vượt trội: "${topStrength}". Với điểm số tương thích đạt ${candidate.overall_score}%, hồ sơ của bạn hoàn toàn ĐẠT TIÊU CHUẨN đầu vào cho vị trí này.\n\n` +
+          `Chúng tôi trân trọng kính mời bạn tham dự buổi Phỏng Vấn Chuyên Sâu (Technical Round):\n` +
+          `  • Thời gian đề xuất 1: 09:30 - 10:30 Thứ Năm, ngày 18/09/2026\n` +
+          `  • Thời gian đề xuất 2: 14:00 - 15:00 Thứ Sáu, ngày 19/09/2026\n` +
+          `  • Hình thức: Trực tuyến qua Google Meet (Link sẽ được gửi sau khi bạn xác nhận)\n` +
+          `  • Người phỏng vấn: Tech Lead & Trưởng bộ phận Core Engineering\n\n` +
+          `Bạn vui lòng phản hồi email này để xác nhận khung giờ thuận tiện nhất nhé.\n\n` +
           `Trân trọng,\nĐội ngũ Tuyển dụng TalentScout`
       };
     } else {
       return {
-        subject: `[TalentScout] Cập nhật kết quả hồ sơ ứng tuyển vị trí ${jobTitle}`,
+        subject: `[TalentScout] Cập Nhật Kết Quả Tuyển Dụng Vị Trí ${jobTitle} — ${candidateName}`,
         body: `Chào bạn ${candidateName},\n\n` +
-          `Lời đầu tiên, TalentScout xin chân thành cảm ơn bạn đã dành thời gian và tâm huyết ứng tuyển cho vị trí ${jobTitle}.\n\n` +
-          `Sau quá trình xem xét kỹ lưỡng so với các tiêu chuẩn khắt khe của đợt tuyển dụng này, chúng tôi rất tiếc phải thông báo hiện tại chưa thể đồng hành cùng bạn ở vị trí này. Hệ thống ghi nhận điểm bạn có thể tiếp tục trau dồi để mở rộng cơ hội trong tương lai: "${topGap}".\n\n` +
-          `Hồ sơ của bạn đã được lưu trữ trong Cơ sở Dữ liệu Tài Năng (Talent Pool) của TalentScout. Khi có các dự án mới phù hợp hơn với thế mạnh của bạn, chúng tôi sẽ chủ động liên hệ lại.\n\n` +
-          `Chúc bạn luôn giữ vững đam mê và đạt được nhiều thành công trên con đường sự nghiệp!\n\n` +
+          `Lời đầu tiên, TalentScout xin chân thành cảm ơn sự quan tâm và thời gian bạn đã dành để ứng tuyển cho vị trí ${jobTitle}.\n\n` +
+          `Sau quá trình đối chiếu kỹ lưỡng với bộ tiêu chí của vị trí Senior hiện tại, chúng tôi rất tiếc phải thông báo hiện tại hồ sơ của bạn chưa phù hợp nhất với đợt tuyển dụng này. Hệ thống AI ghi nhận định hướng để bạn có thể tiếp tục trau dồi nâng cao năng lực: "${topGap}".\n\n` +
+          `Hồ sơ của bạn đã được trân trọng lưu trữ trong Cơ sở Dữ liệu Tài Năng (Talent Pool) của TalentScout. Khi có các dự án mới hoặc vị trí khác phù hợp hơn với thế mạnh của bạn, bộ phận nhân sự sẽ chủ động kết nối lại.\n\n` +
+          `Chúc bạn luôn giữ vững ngọn lửa đam mê và gặt hái thật nhiều thành công trong sự nghiệp!\n\n` +
           `Trân trọng,\nĐội ngũ Tuyển dụng TalentScout`
       };
     }
@@ -523,7 +835,6 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedCandidate = candidate;
     emailTone = defaultTone;
 
-    // Update Tone Button UI
     if (emailTone === 'invite') {
       btnToneInvite.classList.add('active');
       btnToneReject.classList.remove('active');
@@ -585,187 +896,325 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnSendEmail.addEventListener('click', () => {
-    showToast('Đang kết nối SMTP Server...', 'info');
+    showToast('Đang kết nối máy chủ SMTP TalentScout...', 'info');
     setTimeout(() => {
+      if (selectedCandidate) {
+        selectedCandidate.email_status = emailTone === 'invite' ? 'sent_invite' : 'sent_reject';
+        renderBoard();
+        if (currentView === 'table') renderTableView();
+      }
       modalEmailOverlay.classList.remove('active');
       showToast(`Email đã được gửi thành công đến ${emailRecipient.value}!`, 'success');
-    }, 1000);
+    }, 900);
   });
 
-  btnCloseEmail.addEventListener('click', () => {
-    modalEmailOverlay.classList.remove('active');
+  btnCloseEmail.addEventListener('click', () => modalEmailOverlay.classList.remove('active'));
+
+  // =========================================================================
+  // BATCH AUTO-EMAIL DISPATCHER (AUTOMATED EMAIL FOR PASS & FAIL CANDIDATES)
+  // =========================================================================
+  function openBatchEmailModal() {
+    // Partition candidates into Qualified (Pass) and Unqualified (Fail)
+    const passGroup = candidates.filter(c => c.is_qualified);
+    const rejectGroup = candidates.filter(c => !c.is_qualified);
+
+    batchCountPass.textContent = passGroup.length;
+    batchCountReject.textContent = rejectGroup.length;
+
+    // Render Qualified List
+    batchListPass.innerHTML = passGroup.map(cand => {
+      const name = isBlindMode ? cand.blind_id : cand.name;
+      const email = isBlindMode ? 'pii-hidden@talentscout.ai' : cand.email;
+      const statusPill = cand.email_status === 'sent_invite' 
+        ? '<span style="color: var(--emerald); font-size: 0.75rem;">✓ Đã gửi</span>'
+        : '<span style="color: var(--text-muted); font-size: 0.75rem;">⏳ Chờ gửi thư mời</span>';
+
+      return `
+        <div class="batch-cand-item">
+          <div>
+            <strong>${name}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${email}</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="cand-score" style="color: var(--emerald);">${cand.overall_score}%</span>
+            <div>${statusPill}</div>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="color: var(--text-muted); font-size: 0.8125rem; text-align: center; padding: 1rem;">Không có ứng viên đạt yêu cầu</div>';
+
+    // Render Unqualified List
+    batchListReject.innerHTML = rejectGroup.map(cand => {
+      const name = isBlindMode ? cand.blind_id : cand.name;
+      const email = isBlindMode ? 'pii-hidden@talentscout.ai' : cand.email;
+      const statusPill = cand.email_status === 'sent_reject' 
+        ? '<span style="color: var(--amber); font-size: 0.75rem;">✓ Đã gửi</span>'
+        : '<span style="color: var(--text-muted); font-size: 0.75rem;">⏳ Chờ gửi thư góp ý</span>';
+
+      return `
+        <div class="batch-cand-item">
+          <div>
+            <strong>${name}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${email}</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="cand-score" style="color: var(--rose);">${cand.overall_score}%</span>
+            <div>${statusPill}</div>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="color: var(--text-muted); font-size: 0.8125rem; text-align: center; padding: 1rem;">Không có ứng viên chưa phù hợp</div>';
+
+    // Summary Text
+    batchSummaryStatsText.innerHTML = `Sẵn sàng gửi tự động: <strong>${passGroup.length}</strong> Thư Mời Phỏng Vấn và <strong>${rejectGroup.length}</strong> Thư Từ Chối Mang Tính Xây Dựng.`;
+
+    // Reset progress UI
+    batchProgressBox.style.display = 'none';
+    batchConsoleLog.innerHTML = '';
+    btnExecuteBatchDispatch.disabled = false;
+    btnExecuteBatchDispatch.style.opacity = '1';
+
+    modalBatchEmailOverlay.classList.add('active');
+  }
+
+  btnOpenBatchEmail.addEventListener('click', openBatchEmailModal);
+  btnCloseBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+  btnCancelBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+
+  // Execute Batch Sending Simulation
+  btnExecuteBatchDispatch.addEventListener('click', () => {
+    btnExecuteBatchDispatch.disabled = true;
+    btnExecuteBatchDispatch.style.opacity = '0.5';
+    batchProgressBox.style.display = 'block';
+
+    const queue = [...candidates];
+    const total = queue.length;
+    let processed = 0;
+
+    batchConsoleLog.innerHTML = `<div class="log-info">[INIT] Đang kết nối giao thức SMTP an toàn (SSL/TLS cổng 587)...</div>`;
+
+    function logLine(msg, type = 'info') {
+      const timeStr = new Date().toLocaleTimeString('vi-VN');
+      const div = document.createElement('div');
+      div.className = `log-${type}`;
+      div.textContent = `[${timeStr}] ${msg}`;
+      batchConsoleLog.appendChild(div);
+      batchConsoleLog.scrollTop = batchConsoleLog.scrollHeight;
+    }
+
+    const interval = setInterval(() => {
+      if (processed < total) {
+        const cand = queue[processed];
+        const name = isBlindMode ? cand.blind_id : cand.name;
+
+        if (cand.is_qualified) {
+          cand.email_status = 'sent_invite';
+          logLine(`📨 Gửi Thư Mời Phỏng Vấn -> ${name} (${cand.overall_score}%) [THÀNH CÔNG]`, 'success');
+        } else {
+          cand.email_status = 'sent_reject';
+          const reason = cand.missing_mandatory && cand.missing_mandatory.length > 0
+            ? `Thiếu kỹ năng: ${cand.missing_mandatory.join(', ')}`
+            : `${cand.experience_years} năm kinh nghiệm`;
+          logLine(`🤝 Gửi Thư Từ Chối Xây Dựng (${reason}) -> ${name} [THÀNH CÔNG]`, 'warn');
+        }
+
+        processed++;
+        const pct = Math.round((processed / total) * 100);
+        batchPercentLabel.textContent = `${pct}%`;
+        batchProgressBarFill.style.width = `${pct}%`;
+        batchStatusLabel.textContent = `Đang xử lý ${processed}/${total} hồ sơ...`;
+      } else {
+        clearInterval(interval);
+        logLine(`[COMPLETE] Đã hoàn thành gửi tự động 100% email phản hồi không bỏ sót bất kỳ ứng viên nào!`, 'success');
+        batchStatusLabel.textContent = 'Hoàn tất gửi hàng loạt!';
+
+        renderBoard();
+        if (currentView === 'table') renderTableView();
+
+        setTimeout(() => {
+          showToast(`🎉 Đã tự động gửi thành công ${total} email phản hồi cho toàn bộ ứng viên!`, 'success');
+        }, 600);
+      }
+    }, 450);
   });
 
   // =========================================================================
   // Resume Upload & Ingest Simulation
   // =========================================================================
-  btnOpenUploadModal.addEventListener('click', () => {
-    modalUploadOverlay.classList.add('active');
-    uploadProgressCard.classList.remove('active');
-    renderSamplePresets();
-  });
-
-  btnCloseUpload.addEventListener('click', () => {
-    modalUploadOverlay.classList.remove('active');
-  });
-
-  function renderSamplePresets() {
-    samplePresetsList.innerHTML = SAMPLE_PRESETS.map((preset, index) => `
-      <div class="preset-item" data-index="${index}">
+  function renderPresets() {
+    samplePresetsList.innerHTML = SAMPLE_PRESETS.map((preset, idx) => `
+      <div class="preset-item" data-idx="${idx}">
         <div>
-          <strong>📄 ${preset.name}</strong>
-          <div><span>Tệp: ${preset.filename} (${preset.filesize}) • ${preset.exp} năm KN</span></div>
+          <strong>${preset.name}</strong>
+          <span>${preset.filename} • ${preset.filesize} • ${preset.exp} năm KN</span>
         </div>
-        <div>
-          <span class="btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Nạp CV Này →</span>
-        </div>
+        <button class="btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Nạp Nhanh</button>
       </div>
     `).join('');
 
     samplePresetsList.querySelectorAll('.preset-item').forEach(item => {
       item.addEventListener('click', () => {
-        const idx = parseInt(item.getAttribute('data-index'), 10);
-        simulateResumeIngestion(SAMPLE_PRESETS[idx]);
+        const idx = parseInt(item.getAttribute('data-idx'), 10);
+        simulateUpload(SAMPLE_PRESETS[idx]);
       });
     });
   }
 
-  btnTriggerFile.addEventListener('click', (e) => {
-    e.stopPropagation();
-    cvFileInput.click();
+  btnOpenUploadModal.addEventListener('click', () => {
+    modalUploadOverlay.classList.add('active');
+    uploadProgressCard.classList.remove('active');
+    renderPresets();
   });
 
-  cvDropzone.addEventListener('click', () => {
-    cvFileInput.click();
-  });
+  btnCloseUpload.addEventListener('click', () => modalUploadOverlay.classList.remove('active'));
 
+  btnTriggerFile.addEventListener('click', () => cvFileInput.click());
   cvFileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files.length > 0) {
       const file = e.target.files[0];
-      const customCandidate = {
-        name: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+      simulateUpload({
+        name: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
         filename: file.name,
-        filesize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        exp: 4.0,
+        filesize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        exp: 3.8,
         skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL"],
-        score: 87,
-        category: "STRONG_HIRE",
-        summary: "Ứng viên tự động trích xuất từ tệp tải lên của người dùng.",
-        university: "Đại học Quốc gia"
-      };
-      simulateResumeIngestion(customCandidate);
+        score: 82,
+        category: "INTERVIEW",
+        is_qualified: true,
+        summary: "Ứng viên tải lên từ máy tính cá nhân qua hệ thống Ingestion API.",
+        university: "Đại học Bách Khoa"
+      });
     }
   });
 
-  function simulateResumeIngestion(presetData) {
+  // Dropzone drag events
+  ['dragenter', 'dragover'].forEach(name => {
+    cvDropzone.addEventListener(name, (e) => {
+      e.preventDefault();
+      cvDropzone.classList.add('drag-active');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(name => {
+    cvDropzone.addEventListener(name, (e) => {
+      e.preventDefault();
+      cvDropzone.classList.remove('drag-active');
+    });
+  });
+
+  cvDropzone.addEventListener('drop', (e) => {
+    if (e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      simulateUpload({
+        name: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+        filename: file.name,
+        filesize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        exp: 4.0,
+        skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL"],
+        score: 85,
+        category: "STRONG_HIRE",
+        is_qualified: true,
+        summary: "Ứng viên được nạp thành công từ tệp kéo thả trực tiếp.",
+        university: "Đại học Khoa học Tự nhiên"
+      });
+    }
+  });
+
+  function simulateUpload(sample) {
     uploadProgressCard.classList.add('active');
-    progressBarFill.style.width = '10%';
-    progressPercentText.textContent = '10%';
-    progressStepText.textContent = `Bắt đầu nạp: ${presetData.filename}...`;
+    progressBarFill.style.width = '0%';
+    progressStepText.textContent = '1/4: Đang đọc tệp và phân tách cấu trúc PDF...';
+    progressPercentText.textContent = '20%';
+    progressBarFill.style.width = '20%';
 
-    // Step 1: Ingestion & OCR (<1s)
     setTimeout(() => {
-      progressBarFill.style.width = '45%';
-      progressPercentText.textContent = '45%';
-      progressStepText.textContent = 'Trích xuất cấu trúc văn bản & OCR PyMuPDF...';
-      progressSubText.textContent = 'Đang nhận dạng các khối thông tin: Học vấn, Kinh nghiệm, Dự án...';
-    }, 500);
+      progressStepText.textContent = '2/4: Trích xuất thực thể NER Spacy & Từ điển ESCO...';
+      progressPercentText.textContent = '55%';
+      progressBarFill.style.width = '55%';
+    }, 600);
 
-    // Step 2: Spacy NER & Skills Taxonomy
     setTimeout(() => {
-      progressBarFill.style.width = '78%';
-      progressPercentText.textContent = '78%';
-      progressStepText.textContent = 'Đối soát Spacy NER & Từ điển kỹ năng ESCO...';
-      progressSubText.textContent = `Đã nhận diện ${presetData.skills.length} kỹ năng, kinh nghiệm: ${presetData.exp} năm.`;
+      progressStepText.textContent = '3/4: Tạo vector embedding BGE-M3 & So khớp ngữ nghĩa...';
+      progressPercentText.textContent = '85%';
+      progressBarFill.style.width = '85%';
     }, 1200);
 
-    // Step 3: LLM Evaluation & Structured Output
     setTimeout(() => {
-      progressBarFill.style.width = '100%';
+      progressStepText.textContent = '4/4: Tổng hợp giải trình XAI & Chuẩn bị phản hồi tự động...';
       progressPercentText.textContent = '100%';
-      progressStepText.textContent = 'LLM Chấm điểm tương thích & XAI Synthesis hoàn tất!';
-      progressSubText.textContent = `Điểm phù hợp: ${presetData.score}% — Nhãn: ${presetData.category}`;
+      progressBarFill.style.width = '100%';
 
-      // Create new candidate object
-      const randomHash = Math.floor(1000 + Math.random() * 9000);
+      const newId = `cand-${Date.now().toString().slice(-4)}`;
+      const randomBlindNum = Math.floor(1000 + Math.random() * 9000);
+      const isQualified = sample.score >= 65;
+
       const newCand = {
-        id: `cand-${Date.now()}`,
-        blind_id: `Candidate #TSC-${randomHash}`,
-        name: presetData.name.split(' - ')[0],
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80",
-        email: `${presetData.name.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`,
-        phone: "09" + Math.floor(10000000 + Math.random() * 90000000),
-        university: presetData.university,
-        degree: "Cử nhân CNTT",
-        experience_years: presetData.exp,
-        stage: "screened",
-        overall_score: presetData.score,
-        category: presetData.category,
+        id: newId,
+        blind_id: `Candidate #TSC-${randomBlindNum}`,
+        name: sample.name,
+        avatar: `https://images.unsplash.com/photo-${1535713875002 + Math.floor(Math.random()*100)}?w=160&auto=format&fit=crop&q=80`,
+        email: `${sample.name.toLowerCase().replace(/\s+/g, '.')}@candidate-mail.com`,
+        phone: '0901.888.999',
+        university: sample.university || 'Đại học Quốc gia',
+        degree: 'Cử nhân CNTT',
+        experience_years: sample.exp,
+        stage: 'screened',
+        overall_score: sample.score,
+        category: sample.category,
+        is_qualified: isQualified,
+        email_status: 'none',
         applied_date: new Date().toISOString().split('T')[0],
-        summary: presetData.summary,
-        skills: presetData.skills,
+        summary: sample.summary,
+        skills: sample.skills,
         score_breakdown: {
-          skills: presetData.score >= 80 ? 90 : 60,
-          experience: Math.min(100, Math.round((presetData.exp / 4.0) * 100)),
+          skills: sample.score > 80 ? 90 : 65,
+          experience: Math.min(100, Math.round((sample.exp / 4.0) * 100)),
           education: 85,
-          semantic: presetData.score
+          semantic: sample.score > 80 ? 88 : 70
         },
-        matched_skills: presetData.skills.filter(s => JOB_REQUISITION.mandatory_skills.includes(s) || JOB_REQUISITION.preferred_skills.includes(s)),
-        missing_mandatory: JOB_REQUISITION.mandatory_skills.filter(s => !presetData.skills.includes(s)),
-        missing_preferred: JOB_REQUISITION.preferred_skills.filter(s => !presetData.skills.includes(s)),
+        matched_skills: sample.skills.filter(s => JOB_REQUISITION.mandatory_skills.includes(s) || JOB_REQUISITION.preferred_skills.includes(s)),
+        missing_mandatory: JOB_REQUISITION.mandatory_skills.filter(s => !sample.skills.includes(s)),
+        missing_preferred: JOB_REQUISITION.preferred_skills.filter(s => !sample.skills.includes(s)),
         strengths: [
-          `Kinh nghiệm thực tế ${presetData.exp} năm trong lĩnh vực phát triển phần mềm.`,
-          `Nắm vững các kỹ năng quan trọng: ${presetData.skills.slice(0, 3).join(', ')}.`,
-          `Thời gian xử lý và bóc tách CV thần tốc: 2.1 giây.`
+          `Kinh nghiệm thực chiến ${sample.exp} năm phù hợp với vị trí tuyển dụng.`,
+          `Nắm vững các công cụ chủ chốt: ${sample.skills.slice(0, 3).join(', ')}.`,
+          `Phù hợp với văn hóa xây dựng sản phẩm linh hoạt.`
         ],
         skill_gaps: [
-          "Cần đào sâu thêm kinh nghiệm tối ưu hóa hiệu năng và triển khai hạ tầng đám mây."
+          `Cần cọ xát thêm với quy trình triển khai phân tán chịu tải lớn.`
         ],
         interview_questions: [
-          "Hãy mô tả kiến trúc dự án phức tạp nhất mà bạn đã từng tham gia.",
-          "Cách bạn tiếp cận và giải quyết các bài toán về tối ưu tốc độ phản hồi API?"
+          `Dự án gần nhất bạn tự hào nhất là gì và bạn đóng góp vai trò cụ thể nào?`,
+          `Cách bạn giải quyết xung đột ý kiến khi làm việc trong nhóm phát triển sản phẩm?`
         ]
       };
 
       candidates.unshift(newCand);
       renderBoard();
+      if (currentView === 'table') renderTableView();
 
       setTimeout(() => {
         modalUploadOverlay.classList.remove('active');
-        showToast(`🎉 Đã nạp thành công ứng viên "${newCand.name}" (${newCand.overall_score}%) vào cột "Đã Sàng Lọc AI"!`, 'success');
+        const qualifyText = newCand.is_qualified ? '🟢 ĐẠT YÊU CẦU' : '🔴 CHƯA PHÙ HỢP';
+        showToast(`🎉 Đã nạp thành công "${newCand.name}" (${newCand.overall_score}% - ${qualifyText}) vào cột "Đã Sàng Lọc AI"!`, 'success');
       }, 700);
 
-    }, 2100);
+    }, 1800);
   }
 
-  // Toggle Criteria Drawer Card
-  const btnToggleCriteria = document.getElementById('btn-toggle-criteria');
-  const criteriaSummaryCard = document.getElementById('criteria-summary-card');
-  btnToggleCriteria.addEventListener('click', () => {
-    if (criteriaSummaryCard.style.display === 'none') {
-      criteriaSummaryCard.style.display = 'flex';
-      btnToggleCriteria.classList.add('btn-primary');
-      btnToggleCriteria.classList.remove('btn-secondary');
-    } else {
-      criteriaSummaryCard.style.display = 'none';
-      btnToggleCriteria.classList.remove('btn-primary');
-      btnToggleCriteria.classList.add('btn-secondary');
-    }
-  });
-
-  // Close modals on clicking overlay backdrop
-  [modalXaiOverlay, modalEmailOverlay, modalUploadOverlay].forEach(modal => {
+  // =========================================================================
+  // Modal Backdrop & ESC Key Handling
+  // =========================================================================
+  const allModals = [modalXaiOverlay, modalEmailOverlay, modalBatchEmailOverlay, modalUploadOverlay];
+  allModals.forEach(modal => {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.remove('active');
-      }
+      if (e.target === modal) modal.classList.remove('active');
     });
   });
 
-  // Escape key to close any active modal
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      [modalXaiOverlay, modalEmailOverlay, modalUploadOverlay].forEach(m => m.classList.remove('active'));
+      allModals.forEach(m => m.classList.remove('active'));
     }
   });
 
@@ -773,5 +1222,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial Render
   // =========================================================================
   renderBoard();
-  showToast('Chào mừng bạn đến với TalentScout ATS Studio! Hệ thống đã sẵn sàng.', 'info');
+  showToast('Chào mừng bạn đến với TalentScout ATS Studio! Hệ thống đã sẵn sàng sàng lọc và phản hồi email tự động.', 'info');
 });
