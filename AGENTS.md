@@ -43,3 +43,12 @@ Khi viết code tích hợp AI services, phải thiết lập cơ chế fallback
   pip install -r requirements.txt -r requirements-dev.txt
   python -m spacy download vi_core_news_lg
   python run.py
+  ```
+
+## 6. Weekly Git Commit Cadence
+- At the start of a work session, check `git status` and the date of the latest commit.
+- If a week or more has passed since the latest commit, or this week's work is ready to save, remind the user that a commit is due.
+- Before preparing a commit, review the diff and include only changes related to the current task. Leave unrelated or pre-existing changes untouched.
+- Suggest a concise commit message that describes the completed work.
+- Never commit or push automatically. Ask the user for explicit approval before either action, and push only to the confirmed branch and remote.
+- Do not prepare a commit containing secrets, unfinished work, or changes that have not been validated when validation is applicable.
