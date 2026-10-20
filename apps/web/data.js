@@ -2,26 +2,96 @@
 // Phục vụ ATS Studio, Live Criteria Calibrator & LLM Screening Engine
 
 const JOB_REQUISITION = {
-  job_id: "JOB-FS-2026",
-  title: "Senior Fullstack Engineer (Python + React)",
-  department: "Core Product Engineering",
-  level: "Senior Level",
-  location: "TP. Hồ Chí Minh (Hybrid / Remote-friendly)",
-  salary_range: "$2,500 - $3,500 / tháng",
-  min_experience_years: 4.0,
-  min_education: "Cử nhân (Bachelor of CS/SE)",
-  mandatory_skills: ["Python", "FastAPI", "React", "Docker"],
-  preferred_skills: ["PostgreSQL", "Redis", "TypeScript", "AWS", "Kubernetes", "GraphQL"],
+  job_id: "JOB-QC-2025",
+  title: "QC/Tester HN",
+  department: "QC /Tester/Kiểm thử phần mềm",
+  company_branch: "TT SAKURA Place",
+  slots: 1,
+  deadline: "30/06/2025",
+  level: "Middle / Senior Level",
+  location: "Hà Nội",
+  salary_range: "18.000.000 - 25.000.000 VNĐ",
+  min_experience_years: 3.0,
+  min_education: "Cử nhân Công nghệ Thông tin",
+  mandatory_skills: ["QC", "Tester", "Kiểm thử phần mềm", "Postman"],
+  preferred_skills: ["Selenium", "SQL", "JMeter", "Automation Test", "Python", "Git"],
   weights: {
     skills: 40,
     experience: 30,
     education: 15,
     semantic: 15
   },
-  description: "TalentScout đang tìm kiếm Kỹ sư Fullstack Cấp cao dẫn dắt kiến trúc sản phẩm AI ATS thế hệ mới, tối ưu hóa các pipeline xử lý bất đồng bộ, tích hợp mô hình LLM và xây dựng giao diện người dùng thời gian thực mượt mà."
+  description: "TalentScout đang tìm kiếm Kỹ sư Kiểm thử Phần mềm (QC/Tester) làm việc tại TT SAKURA Place, chịu trách nhiệm xây dựng kịch bản kiểm thử, kiểm thử tự động API và đảm bảo chất lượng phần mềm trước khi phát hành."
 };
 
 const INITIAL_CANDIDATES = [
+  {
+    id: "cand-000",
+    blind_id: "Candidate #TSC-1088",
+    name: "Nguyễn Ngọc Tuấn",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80",
+    email: "tuan.nguyen@email.com",
+    phone: "0903.888.999",
+    university: "Đại học Bách Khoa Hà Nội",
+    degree: "Cử nhân Công nghệ Thông tin",
+    experience_years: 2.7,
+    stage: "screened",
+    overall_score: 92,
+    category: "STRONG_HIRE",
+    is_qualified: true,
+    email_status: "none",
+    applied_date: "2026-09-15",
+    summary: "Ứng viên Nguyễn Ngọc Tuấn phù hợp khoảng 92% với các yêu cầu của vị trí này. Ứng viên Nguyễn Ngọc Tuấn có thông tin liên hệ đầy đủ và kinh nghiệm làm việc phong phú trong lĩnh vực kế toán và hồ sơ thầu. Tuy nhiên, kinh nghiệm làm việc chưa đạt đủ ba năm theo yêu cầu. Ứng viên hiện đang sinh sống và làm việc tại Hà Nội, phù hợp với yêu cầu địa điểm làm việc.",
+    skills: ["QC", "Tester", "Kiểm thử phần mềm", "Postman", "SQL", "Selenium", "API Testing"],
+    score_breakdown: {
+      skills: 95,
+      experience: 67,
+      education: 100,
+      semantic: 92
+    },
+    criteria_analysis: [
+      {
+        title: "Thông tin liên hệ",
+        score: 100,
+        color: "#10b981",
+        detail: "Ứng viên cung cấp đầy đủ số điện thoại và email liên hệ."
+      },
+      {
+        title: "Kinh nghiệm làm việc",
+        score: 67,
+        color: "#0284c7",
+        detail: "Ứng viên có tổng cộng khoảng 2 năm và 8 tháng kinh nghiệm làm việc từ 03/2021 đến nay, chưa đạt đủ ba năm theo yêu cầu."
+      },
+      {
+        title: "Địa điểm làm việc",
+        score: 100,
+        color: "#6366f1",
+        detail: "Ứng viên hiện đang sinh sống và làm việc tại Hà Nội."
+      },
+      {
+        title: "Kỹ năng chuyên môn",
+        score: 95,
+        color: "#a855f7",
+        detail: "Đáp ứng 4/4 kỹ năng kiểm thử cốt lõi (Kiểm thử chức năng, API Testing, Postman, SQL). Nắm vững quy trình Bug Lifecycle."
+      }
+    ],
+    matched_skills: ["QC", "Tester", "Kiểm thử phần mềm", "Postman", "SQL"],
+    missing_mandatory: [],
+    missing_preferred: ["JMeter", "Python"],
+    strengths: [
+      "Cung cấp đầy đủ thông tin liên lạc và hồ sơ ứng tuyển rõ ràng.",
+      "Kinh nghiệm làm việc thực tế với các dự án kiểm thử phần mềm từ tháng 03/2021 đến nay.",
+      "Sinh sống và làm việc tại Hà Nội, sẵn sàng nhận việc ngay tại địa điểm yêu cầu."
+    ],
+    skill_gaps: [
+      "Tổng số năm kinh nghiệm thực tế (2 năm 8 tháng) chưa đạt đủ ba năm theo yêu cầu vị trí."
+    ],
+    interview_questions: [
+      "Bạn hãy chia sẻ quy trình viết Test Cases và Test Plan cho một tính năng phức tạp mà bạn từng phụ trách?",
+      "Khi phát hiện lỗi nghiêm trọng sát giờ Release, bạn phối hợp với team Dev để xử lý như thế nào?",
+      "Kinh nghiệm của bạn trong việc thực hiện API Testing bằng Postman là gì?"
+    ]
+  },
   {
     id: "cand-001",
     blind_id: "Candidate #TSC-9481",

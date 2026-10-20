@@ -232,12 +232,161 @@
       color: var(--text-secondary);
     }
 
+    /* Candidate Quick Filmstrip Carousel */
+    .candidate-filmstrip-bar {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+      scrollbar-width: thin;
+    }
+    .candidate-filmstrip-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.45rem 0.85rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+      user-select: none;
+    }
+    .candidate-filmstrip-card:hover {
+      border-color: var(--primary-light);
+      background: rgba(99, 102, 241, 0.08);
+      transform: translateY(-2px);
+    }
+    .candidate-filmstrip-card.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.16);
+      box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
+    }
+    .filmstrip-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .filmstrip-name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .filmstrip-score-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+    }
+
+    /* Visual 4-Pillar & Radar Hybrid Layout */
+    .hybrid-evaluation-section {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+      align-items: stretch;
+    }
+    @media (max-width: 1080px) {
+      .hybrid-evaluation-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* 4-Pillar Breakdown Metric Grid */
     .pillar-breakdown-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
-      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 640px) {
+      .pillar-breakdown-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Radar Chart Card */
+    .radar-chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.25rem;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .radar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .radar-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .radar-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .radar-canvas-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+    .radar-svg {
+      width: 100%;
+      max-width: 320px;
+      height: auto;
+      overflow: visible;
+    }
+    .radar-legend {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .radar-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .legend-color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .legend-color-dot.candidate-dot {
+      background: #34D399;
+      box-shadow: 0 0 6px #34D399;
+    }
+    .legend-color-dot.benchmark-dot {
+      background: #94A3B8;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
     }
 
     .pillar-card {
@@ -658,6 +807,9 @@
       </div>
     </div>
 
+    <!-- Quick Candidate Filmstrip Carousel -->
+    <div class="candidate-filmstrip-bar" id="candidate-filmstrip"></div>
+
     <!-- Candidate Profile Hero Card -->
     <section class="profile-hero-card">
       <div class="profile-hero-main">
@@ -738,54 +890,85 @@
       </div>
     </section>
 
-    <!-- 4-Pillar Score Breakdown Matrix -->
-    <section class="pillar-breakdown-grid">
-      <!-- Skills Pillar -->
-      <div class="pillar-card">
-        <div class="pillar-header">
-          <span class="pillar-title">1. Kỹ Năng (Skills - 40%)</span>
-          <span class="pillar-score" id="pillar-score-skills" style="color: var(--emerald);">95%</span>
+    <!-- 4-Pillar Score Breakdown Matrix & Radar Chart Hybrid -->
+    <section class="hybrid-evaluation-section">
+      <!-- Left: 4 Metric Pillar Cards Grid -->
+      <div class="pillar-breakdown-grid">
+        <!-- Skills Pillar -->
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-title">1. Kỹ Năng (Skills - 40%)</span>
+            <span class="pillar-score" id="pillar-score-skills" style="color: var(--emerald);">95%</span>
+          </div>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill" id="pillar-bar-skills" style="width: 95%; background: var(--emerald);"></div>
+          </div>
+          <div class="pillar-subtext" id="pillar-sub-skills">Mandatory Skills: 4/4 Passed (100%)</div>
         </div>
-        <div class="pillar-bar-bg">
-          <div class="pillar-bar-fill" id="pillar-bar-skills" style="width: 95%; background: var(--emerald);"></div>
+
+        <!-- Experience Pillar -->
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-title">2. Kinh Nghiệm (Exp - 30%)</span>
+            <span class="pillar-score" id="pillar-score-exp" style="color: var(--emerald);">100%</span>
+          </div>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill" id="pillar-bar-exp" style="width: 100%; background: var(--emerald);"></div>
+          </div>
+          <div class="pillar-subtext" id="pillar-sub-exp">4.5 năm / Yêu cầu min 4.0 năm</div>
         </div>
-        <div class="pillar-subtext" id="pillar-sub-skills">Mandatory Skills: 4/4 Passed (100%)</div>
+
+        <!-- Education Pillar -->
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-title">3. Bằng Cấp (Edu - 15%)</span>
+            <span class="pillar-score" id="pillar-score-edu" style="color: #38BDF8;">85%</span>
+          </div>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill" id="pillar-bar-edu" style="width: 85%; background: #38BDF8;"></div>
+          </div>
+          <div class="pillar-subtext" id="pillar-sub-edu">Cử nhân Công nghệ Thông tin / CS</div>
+        </div>
+
+        <!-- Semantic Cosine Pillar -->
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-title">4. Ngữ Nghĩa (Semantic - 15%)</span>
+            <span class="pillar-score" id="pillar-score-sem" style="color: var(--purple);">92%</span>
+          </div>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill" id="pillar-bar-sem" style="width: 92%; background: var(--purple);"></div>
+          </div>
+          <div class="pillar-subtext" id="pillar-sub-sem">bge-m3 Cosine Similarity Vector</div>
+        </div>
       </div>
 
-      <!-- Experience Pillar -->
-      <div class="pillar-card">
-        <div class="pillar-header">
-          <span class="pillar-title">2. Kinh Nghiệm (Exp - 30%)</span>
-          <span class="pillar-score" id="pillar-score-exp" style="color: var(--emerald);">100%</span>
+      <!-- Right: Interactive Radar Chart (Spider Chart) -->
+      <div class="radar-chart-card">
+        <div class="radar-header">
+          <div class="radar-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            Radar Điểm Số (Spider Fit)
+          </div>
+          <span class="radar-badge">AI Fit Vector</span>
         </div>
-        <div class="pillar-bar-bg">
-          <div class="pillar-bar-fill" id="pillar-bar-exp" style="width: 100%; background: var(--emerald);"></div>
+        <div class="radar-canvas-wrapper">
+          <svg id="radar-chart-svg" viewBox="0 0 320 260" class="radar-svg"></svg>
         </div>
-        <div class="pillar-subtext" id="pillar-sub-exp">4.5 năm / Yêu cầu min 4.0 năm</div>
-      </div>
-
-      <!-- Education Pillar -->
-      <div class="pillar-card">
-        <div class="pillar-header">
-          <span class="pillar-title">3. Bằng Cấp (Edu - 15%)</span>
-          <span class="pillar-score" id="pillar-score-edu" style="color: #38BDF8;">85%</span>
+        <div class="radar-legend">
+          <div class="radar-legend-item">
+            <span class="legend-color-dot candidate-dot" id="legend-dot-candidate"></span>
+            <span>Ứng viên: <strong id="legend-candidate-score">92%</strong></span>
+          </div>
+          <div class="radar-legend-item">
+            <span class="legend-color-dot benchmark-dot"></span>
+            <span>Chuẩn JD: <strong>80%</strong></span>
+          </div>
         </div>
-        <div class="pillar-bar-bg">
-          <div class="pillar-bar-fill" id="pillar-bar-edu" style="width: 85%; background: #38BDF8;"></div>
-        </div>
-        <div class="pillar-subtext" id="pillar-sub-edu">Cử nhân Công nghệ Thông tin / CS</div>
-      </div>
-
-      <!-- Semantic Cosine Pillar -->
-      <div class="pillar-card">
-        <div class="pillar-header">
-          <span class="pillar-title">4. Ngữ Nghĩa (Semantic - 15%)</span>
-          <span class="pillar-score" id="pillar-score-sem" style="color: var(--purple);">92%</span>
-        </div>
-        <div class="pillar-bar-bg">
-          <div class="pillar-bar-fill" id="pillar-bar-sem" style="width: 92%; background: var(--purple);"></div>
-        </div>
-        <div class="pillar-subtext" id="pillar-sub-sem">bge-m3 Cosine Similarity Vector</div>
       </div>
     </section>
 
@@ -1080,6 +1263,170 @@
         }, 3800);
       }
 
+      // Render Quick Filmstrip Cards
+      function renderFilmstrip() {
+        const filmstripContainer = document.getElementById('candidate-filmstrip');
+        if (!filmstripContainer) return;
+
+        filmstripContainer.innerHTML = candidates.map((cand, idx) => {
+          const isActive = idx === currentCandidateIndex;
+          const displayName = isBlindMode ? cand.blind_id : cand.name;
+          const avatarHtml = isBlindMode 
+            ? `<div style="width:26px;height:26px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:10px;">👤</div>`
+            : `<img src="${cand.avatar}" alt="${cand.name}" class="filmstrip-avatar">`;
+          
+          let scoreBg = 'rgba(16, 185, 129, 0.2)';
+          let scoreColor = '#34D399';
+          if (cand.category === 'INTERVIEW') {
+            scoreBg = 'rgba(99, 102, 241, 0.2)';
+            scoreColor = '#818CF8';
+          } else if (cand.category === 'CONSIDER') {
+            scoreBg = 'rgba(245, 158, 11, 0.2)';
+            scoreColor = '#FBBF24';
+          } else if (cand.category === 'NOT_MATCH' || cand.category === 'REJECT') {
+            scoreBg = 'rgba(244, 63, 94, 0.2)';
+            scoreColor = '#FB7185';
+          }
+
+          return `
+            <div class="candidate-filmstrip-card ${isActive ? 'active' : ''}" data-index="${idx}">
+              ${avatarHtml}
+              <span class="filmstrip-name">${displayName}</span>
+              <span class="filmstrip-score-badge" style="background:${scoreBg};color:${scoreColor};">${cand.overall_score}%</span>
+            </div>
+          `;
+        }).join('');
+
+        filmstripContainer.querySelectorAll('.candidate-filmstrip-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+            currentCandidateIndex = idx;
+            candidateSelector.value = idx;
+            renderCandidateDetail(candidates[currentCandidateIndex]);
+            showToast(`Đang hiển thị hồ sơ: ${isBlindMode ? candidates[idx].blind_id : candidates[idx].name}`, 'info');
+          });
+        });
+      }
+
+      // Render Dynamic SVG Radar Chart (Spider Chart)
+      function renderRadarChart(candidate) {
+        const svg = document.getElementById('radar-chart-svg');
+        if (!svg) return;
+
+        const b = candidate.score_breakdown;
+        const metrics = [
+          { label: 'Kỹ Năng', value: b.skills, benchmark: 80 },
+          { label: 'Kinh Nghiệm', value: b.experience, benchmark: 80 },
+          { label: 'Học Vấn', value: b.education, benchmark: 75 },
+          { label: 'Ngữ Nghĩa', value: b.semantic, benchmark: 80 }
+        ];
+
+        const cx = 160;
+        const cy = 130;
+        const maxRadius = 82;
+        const total = metrics.length;
+
+        function getCoordinates(index, pct) {
+          const angle = (Math.PI * 2 / total) * index - Math.PI / 2;
+          const r = (pct / 100) * maxRadius;
+          const x = cx + r * Math.cos(angle);
+          const y = cy + r * Math.sin(angle);
+          return { x, y };
+        }
+
+        // Web rings (25%, 50%, 75%, 100%)
+        const levels = [25, 50, 75, 100];
+        let ringsHtml = '';
+        levels.forEach(level => {
+          const points = metrics.map((_, i) => {
+            const coord = getCoordinates(i, level);
+            return `${coord.x.toFixed(1)},${coord.y.toFixed(1)}`;
+          }).join(' ');
+          ringsHtml += `<polygon points="${points}" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />`;
+        });
+
+        // Axes and Labels
+        let axesHtml = '';
+        metrics.forEach((m, i) => {
+          const endCoord = getCoordinates(i, 100);
+          const labelCoord = getCoordinates(i, 126);
+          axesHtml += `
+            <line x1="${cx}" y1="${cy}" x2="${endCoord.x.toFixed(1)}" y2="${endCoord.y.toFixed(1)}" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1" />
+            <text x="${labelCoord.x.toFixed(1)}" y="${labelCoord.y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="#94A3B8" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">
+              ${m.label} (${m.value}%)
+            </text>
+          `;
+        });
+
+        // Benchmark Polygon
+        const benchmarkPoints = metrics.map((m, i) => {
+          const coord = getCoordinates(i, m.benchmark);
+          return `${coord.x.toFixed(1)},${coord.y.toFixed(1)}`;
+        }).join(' ');
+        const benchmarkHtml = `<polygon points="${benchmarkPoints}" fill="none" stroke="rgba(148, 163, 184, 0.5)" stroke-width="1.5" stroke-dasharray="3,3" />`;
+
+        // Candidate Polygon
+        const candPoints = metrics.map((m, i) => {
+          const coord = getCoordinates(i, m.value);
+          return `${coord.x.toFixed(1)},${coord.y.toFixed(1)}`;
+        }).join(' ');
+
+        let fillColor = 'rgba(99, 102, 241, 0.35)';
+        let strokeColor = '#818CF8';
+        if (candidate.category === 'STRONG_HIRE') {
+          fillColor = 'rgba(16, 185, 129, 0.35)';
+          strokeColor = '#34D399';
+        } else if (candidate.category === 'NOT_MATCH' || candidate.category === 'REJECT') {
+          fillColor = 'rgba(244, 63, 94, 0.35)';
+          strokeColor = '#FB7185';
+        } else if (candidate.category === 'CONSIDER') {
+          fillColor = 'rgba(245, 158, 11, 0.35)';
+          strokeColor = '#FBBF24';
+        }
+
+        const candPolygonHtml = `
+          <polygon points="${candPoints}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.5" style="transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);" />
+        `;
+
+        // Dots at vertices
+        let dotsHtml = '';
+        metrics.forEach((m, i) => {
+          const coord = getCoordinates(i, m.value);
+          dotsHtml += `
+            <circle cx="${coord.x.toFixed(1)}" cy="${coord.y.toFixed(1)}" r="4.5" fill="${strokeColor}" stroke="#0F172A" stroke-width="1.5" style="filter: drop-shadow(0 0 6px ${strokeColor});">
+              <title>${m.label}: ${m.value}%</title>
+            </circle>
+          `;
+        });
+
+        svg.innerHTML = `
+          <defs>
+            <radialGradient id="radarCenterGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(99, 102, 241, 0.15)"/>
+              <stop offset="100%" stop-color="rgba(99, 102, 241, 0)"/>
+            </radialGradient>
+          </defs>
+          <circle cx="${cx}" cy="${cy}" r="${maxRadius}" fill="url(#radarCenterGlow)"/>
+          ${ringsHtml}
+          ${axesHtml}
+          ${benchmarkHtml}
+          ${candPolygonHtml}
+          ${dotsHtml}
+          <circle cx="${cx}" cy="${cy}" r="3" fill="#64748B" />
+        `;
+
+        const legendScore = document.getElementById('legend-candidate-score');
+        const legendDot = document.getElementById('legend-dot-candidate');
+        if (legendScore) {
+          legendScore.textContent = `${candidate.overall_score}%`;
+          legendScore.style.color = strokeColor;
+        }
+        if (legendDot) {
+          legendDot.style.background = strokeColor;
+          legendDot.style.boxShadow = `0 0 6px ${strokeColor}`;
+        }
+      }
+
       // Populate Candidate Selector
       function populateCandidateSelector() {
         candidateSelector.innerHTML = candidates.map((cand, idx) => `
@@ -1088,10 +1435,14 @@
           </option>
         `).join('');
         candidateSelector.value = currentCandidateIndex;
+        renderFilmstrip();
       }
 
       // Render Selected Candidate
       function renderCandidateDetail(candidate) {
+        // Update filmstrip active state
+        renderFilmstrip();
+
         // 1. Hero Avatar & Info
         if (isBlindMode) {
           heroAvatarBox.innerHTML = `
@@ -1143,9 +1494,29 @@
         heroExpChip.querySelector('span').textContent = `${candidate.experience_years} năm kinh nghiệm`;
         heroDateChip.querySelector('span').textContent = `Nộp ngày: ${candidate.applied_date}`;
 
-        // Score Gauge
-        heroScoreMeter.style.setProperty('--score-pct', candidate.overall_score);
+        // Dynamic Score Gauge with Adaptive Category Glow
+        let meterColor = 'var(--emerald)';
+        let meterShadow = 'rgba(16, 185, 129, 0.35)';
+        if (candidate.category === 'STRONG_HIRE') {
+          meterColor = 'var(--emerald)';
+          meterShadow = 'rgba(16, 185, 129, 0.4)';
+        } else if (candidate.category === 'INTERVIEW') {
+          meterColor = 'var(--primary-light)';
+          meterShadow = 'rgba(99, 102, 241, 0.4)';
+        } else if (candidate.category === 'CONSIDER') {
+          meterColor = 'var(--amber)';
+          meterShadow = 'rgba(245, 158, 11, 0.4)';
+        } else {
+          meterColor = 'var(--rose)';
+          meterShadow = 'rgba(244, 63, 94, 0.4)';
+        }
+        heroScoreMeter.style.background = `radial-gradient(closest-side, var(--bg-card) 79%, transparent 80% 100%), conic-gradient(${meterColor} calc(${candidate.overall_score} * 1%), rgba(255, 255, 255, 0.08) 0)`;
+        heroScoreMeter.style.boxShadow = `0 0 24px ${meterShadow}`;
         heroScoreVal.textContent = `${candidate.overall_score}%`;
+        heroScoreVal.style.color = meterColor;
+
+        // Render Radar Chart
+        renderRadarChart(candidate);
 
         // Email Status
         if (candidate.email_status === 'sent_invite') {
@@ -1462,7 +1833,29 @@ Lỗ hổng kỹ năng: ${current.skill_gaps.join('; ')}`;
         showToast(`Đã gửi email SMTP thành công tới ${emailRecipient.value}!`, 'success');
       });
 
-      // Initializing
+      // Initializing - Check URL parameters (?id=cand-001, ?index=0, ?blind=1)
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramId = urlParams.get('id');
+      const paramIndex = urlParams.get('index');
+      const paramBlind = urlParams.get('blind');
+
+      if (paramBlind === '1' || paramBlind === 'true' || localStorage.getItem('talentscout_blind') === 'true') {
+        isBlindMode = true;
+        blindCheckbox.checked = true;
+      }
+
+      if (paramId) {
+        const foundIdx = candidates.findIndex(c => c.id === paramId || c.blind_id === paramId || c.blind_id.toLowerCase().includes(paramId.toLowerCase()));
+        if (foundIdx !== -1) {
+          currentCandidateIndex = foundIdx;
+        }
+      } else if (paramIndex !== null) {
+        const parsedIdx = parseInt(paramIndex, 10);
+        if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < candidates.length) {
+          currentCandidateIndex = parsedIdx;
+        }
+      }
+
       populateCandidateSelector();
       renderCandidateDetail(candidates[currentCandidateIndex]);
     });

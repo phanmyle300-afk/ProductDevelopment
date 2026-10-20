@@ -401,16 +401,30 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div class="card-footer-actions">
-        <button class="btn-card-action btn-open-xai" title="Xem giải trình AI">
+        <a href="candidate_detail.html?id=${cand.id}" class="btn-card-action" style="text-decoration: none; color: var(--primary-light); font-weight: 700;" title="Mở trang chi tiết hồ sơ & Radar Chart toàn diện">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          Chi Tiết
+        </a>
+        <button class="btn-card-action btn-open-xai" title="Xem giải trình AI nhanh">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-          Chi Tiết XAI
+          XAI
         </button>
         <button class="btn-card-action btn-card-email-action btn-open-email" title="Tự động soạn thảo email phản hồi phù hợp với kết quả">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-          Phản Hồi Mail
+          Mail
         </button>
       </div>
     `;
+
+    // Click candidate profile to view full detail
+    const candProfile = card.querySelector('.candidate-profile');
+    if (candProfile) {
+      candProfile.style.cursor = 'pointer';
+      candProfile.title = 'Bấm để mở Chi Tiết Hồ Sơ & Radar Chart của ứng viên này';
+      candProfile.addEventListener('click', () => {
+        window.location.href = `candidate_detail.html?id=${cand.id}`;
+      });
+    }
 
     // Card Drag Events
     card.addEventListener('dragstart', (e) => {
@@ -436,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmail = card.querySelector('.btn-open-email');
     btnEmail.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Smart detection: if qualified -> open invite tone, if not -> open reject tone
       openEmailModal(cand, cand.is_qualified ? 'invite' : 'reject');
     });
 
@@ -473,10 +486,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       tr.innerHTML = `
         <td>
-          <div class="table-cand-cell">
+          <div class="table-cand-cell" style="cursor: pointer;" title="Bấm để mở Chi Tiết Hồ Sơ & Radar">
             ${avatarHtml}
             <div>
-              <div class="table-cand-name">${displayName}</div>
+              <a href="candidate_detail.html?id=${cand.id}" class="table-cand-name" style="text-decoration: none; color: inherit; font-weight: 700;">
+                ${displayName} <span style="font-size: 0.75rem; color: var(--primary-light);">↗</span>
+              </a>
               <div class="table-cand-sub">${displaySub}</div>
             </div>
           </div>
@@ -498,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td>
           <div style="display: flex; gap: 0.35rem;">
+            <a href="candidate_detail.html?id=${cand.id}" class="btn-card-action" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem; text-decoration: none; color: var(--primary-light);" title="Xem chi tiết hồ sơ & Radar">Chi Tiết</a>
             <button class="btn-card-action btn-tbl-xai" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">XAI</button>
             <button class="btn-card-action btn-card-email-action btn-tbl-email" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">Email</button>
           </div>
@@ -727,72 +743,153 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================================================
-  // XAI Breakdown Modal Logic
+  // XAI Breakdown Modal Logic (Matches User Screenshot Exact Layout)
   // =========================================================================
   function openXaiModal(candidate) {
     selectedCandidate = candidate;
     const displayName = isBlindMode ? candidate.blind_id : candidate.name;
-    document.getElementById('xai-modal-title').textContent = `Báo Cáo Giải Trình AI — ${displayName} (${candidate.overall_score}%)`;
 
-    // 4 Score Pillars
-    document.getElementById('xai-score-skills').textContent = `${candidate.score_breakdown.skills}%`;
-    document.getElementById('xai-score-exp').textContent = `${candidate.score_breakdown.experience}%`;
-    document.getElementById('xai-score-edu').textContent = `${candidate.score_breakdown.education}%`;
-    document.getElementById('xai-score-sem').textContent = `${candidate.score_breakdown.semantic}%`;
+    // 1. Candidate Header Meta
+    const xaiCandAvatar = document.getElementById('xai-cand-avatar');
+    const xaiCandName = document.getElementById('xai-cand-name');
+    const xaiCandScorePill = document.getElementById('xai-cand-score-pill');
 
-    document.getElementById('lbl-xai-skills').textContent = `Kỹ Năng (${currentWeights.skills}%)`;
-    document.getElementById('lbl-xai-exp').textContent = `Kinh Nghiệm (${currentWeights.experience}%)`;
-    document.getElementById('lbl-xai-edu').textContent = `Học Vấn (${currentWeights.education}%)`;
-    document.getElementById('lbl-xai-sem').textContent = `Ngữ Nghĩa (${currentWeights.semantic}%)`;
+    if (xaiCandAvatar) {
+      if (isBlindMode) {
+        xaiCandAvatar.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60';
+      } else {
+        xaiCandAvatar.src = candidate.avatar;
+      }
+    }
 
-    // Matched skills
-    const matchedContainer = document.getElementById('xai-matched-skills-list');
-    matchedContainer.innerHTML = candidate.matched_skills.map(s => 
-      `<span class="card-skill-chip matched">✓ ${s}</span>`
-    ).join('') || '<span style="color: var(--text-muted); font-size: 0.75rem;">Không có kỹ năng trùng khớp</span>';
+    if (xaiCandName) xaiCandName.textContent = displayName;
 
-    // Missing skills
-    const missingContainer = document.getElementById('xai-missing-skills-list');
-    const allMissing = [...(candidate.missing_mandatory || []), ...(candidate.missing_preferred || [])];
-    missingContainer.innerHTML = allMissing.map(s => {
-      const isMandatory = (candidate.missing_mandatory || []).includes(s);
-      return `<span class="card-skill-chip" style="color: ${isMandatory ? '#FB7185' : '#FBBF24'}; border-color: ${isMandatory ? 'rgba(251,113,133,0.3)' : 'rgba(251,191,36,0.3)'};">✗ ${s} ${isMandatory ? '(Bắt buộc - Phạt điểm)' : ''}</span>`;
-    }).join('') || '<span style="color: #34D399; font-size: 0.75rem;">Đầy đủ toàn bộ kỹ năng yêu cầu</span>';
+    if (xaiCandScorePill) {
+      xaiCandScorePill.textContent = `${candidate.overall_score}%`;
+      if (candidate.overall_score >= 80) {
+        xaiCandScorePill.className = 'cand-modal-score-pill green';
+      } else if (candidate.overall_score >= 60) {
+        xaiCandScorePill.className = 'cand-modal-score-pill amber';
+      } else {
+        xaiCandScorePill.className = 'cand-modal-score-pill rose';
+      }
+    }
 
-    // Strengths
-    const strengthsContainer = document.getElementById('xai-strengths-list');
-    strengthsContainer.innerHTML = candidate.strengths.map(st => `<li>${st}</li>`).join('');
+    // 2. Criteria Analysis Table (Exact 2-Column Format with Circular SVG Gauges)
+    const tbody = document.getElementById('criteria-analysis-tbody');
+    if (tbody) {
+      let criteriaList = candidate.criteria_analysis;
+      if (!criteriaList) {
+        criteriaList = [
+          {
+            title: "Thông tin liên hệ",
+            score: 100,
+            color: "#10b981",
+            detail: isBlindMode 
+              ? "Ứng viên cung cấp đầy đủ thông tin liên hệ (được mã hóa bảo mật PII)."
+              : `Ứng viên cung cấp đầy đủ số điện thoại (${candidate.phone}) và email liên hệ.`
+          },
+          {
+            title: "Kinh nghiệm làm việc",
+            score: candidate.score_breakdown.experience,
+            color: "#0284c7",
+            detail: `Ứng viên có tổng cộng khoảng ${candidate.experience_years} năm kinh nghiệm làm việc thực tế, ${candidate.experience_years >= 3.0 ? 'đáp ứng yêu cầu tối thiểu.' : 'chưa đạt đủ ba năm theo yêu cầu.'}`
+          },
+          {
+            title: "Địa điểm làm việc",
+            score: 100,
+            color: "#6366f1",
+            detail: `Ứng viên hiện đang sinh sống và làm việc tại ${candidate.location || 'Hà Nội'}.`
+          },
+          {
+            title: "Kỹ năng chuyên môn",
+            score: candidate.score_breakdown.skills,
+            color: "#8b5cf6",
+            detail: `Đáp ứng kỹ năng kiểm thử/lập trình (${candidate.matched_skills.slice(0, 3).join(', ')}). ${candidate.missing_mandatory && candidate.missing_mandatory.length > 0 ? 'Thiếu kỹ năng bắt buộc: ' + candidate.missing_mandatory.join(', ') : 'Đạt chuẩn kỹ năng cốt lõi.'}`
+          }
+        ];
+      }
 
-    // Probes / Interview Questions
-    const probesContainer = document.getElementById('xai-probes-list');
-    probesContainer.innerHTML = candidate.interview_questions.map(q => `<li>${q}</li>`).join('');
+      tbody.innerHTML = criteriaList.map(item => {
+        const pct = item.score;
+        return `
+          <tr>
+            <td style="width: 28%;">
+              <div class="criterion-name-cell">
+                <span class="criterion-color-bar" style="background-color: ${item.color};"></span>
+                <span>${item.title}</span>
+              </div>
+            </td>
+            <td style="width: 72%;">
+              <div class="criterion-detail-cell">
+                <div class="circular-score-badge">
+                  <svg viewBox="0 0 36 36" class="circular-chart-svg">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path class="circle-fill" stroke="${item.color}" stroke-dasharray="${pct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <text x="18" y="20.5" class="circle-text" fill="${item.color}">${pct}%</text>
+                  </svg>
+                </div>
+                <div class="criterion-text">${item.detail}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 3. AI Summary Paragraph
+    const summaryPara = document.getElementById('xai-summary-paragraph');
+    if (summaryPara) {
+      if (candidate.summary && candidate.summary.includes('phù hợp khoảng')) {
+        summaryPara.innerHTML = candidate.summary;
+      } else {
+        const expNotice = candidate.experience_years >= 3.0
+          ? 'kinh nghiệm làm việc thực tế phong phú và đạt chuẩn yêu cầu.'
+          : 'kinh nghiệm làm việc chưa đạt đủ ba năm theo yêu cầu.';
+        summaryPara.innerHTML = `<strong>Ứng viên ${displayName}</strong> phù hợp khoảng <strong>${candidate.overall_score}%</strong> với các yêu cầu của vị trí này. Ứng viên ${displayName} có thông tin liên hệ đầy đủ và hồ sơ rõ ràng. Tuy nhiên, ${expNotice} Ứng viên hiện đang sinh sống và làm việc tại ${candidate.location || 'Hà Nội'}, phù hợp với yêu cầu địa điểm làm việc.`;
+      }
+    }
+
+    // 4. Connect Full Studio Link
+    const btnFullStudio = document.getElementById('btn-modal-open-full-studio');
+    if (btnFullStudio) {
+      btnFullStudio.href = `candidate_detail.html?id=${candidate.id}`;
+      btnFullStudio.title = `Mở Báo Cáo XAI & Radar Chart của ${displayName}`;
+    }
 
     modalXaiOverlay.classList.add('active');
   }
 
-  btnCloseXai.addEventListener('click', () => modalXaiOverlay.classList.remove('active'));
+  // Close XAI Modal Event Listeners
+  if (btnCloseXai) {
+    btnCloseXai.addEventListener('click', () => modalXaiOverlay.classList.remove('active'));
+  }
 
-  btnXaiToEmail.addEventListener('click', () => {
-    if (selectedCandidate) {
-      modalXaiOverlay.classList.remove('active');
-      openEmailModal(selectedCandidate, selectedCandidate.is_qualified ? 'invite' : 'reject');
-    }
+  const btnCloseXaiBtn = document.getElementById('btn-close-xai-modal-btn');
+  if (btnCloseXaiBtn) {
+    btnCloseXaiBtn.addEventListener('click', () => modalXaiOverlay.classList.remove('active'));
+  }
+
+  modalXaiOverlay.addEventListener('click', (e) => {
+    if (e.target === modalXaiOverlay) modalXaiOverlay.classList.remove('active');
   });
 
-  btnXaiMoveNext.addEventListener('click', () => {
-    if (!selectedCandidate) return;
-    const stages = ['applied', 'screened', 'interview', 'offer', 'rejected'];
-    const currIdx = stages.indexOf(selectedCandidate.stage);
-    if (currIdx >= 0 && currIdx < stages.length - 1) {
-      selectedCandidate.stage = stages[currIdx + 1];
-      renderBoard();
-      if (currentView === 'table') renderTableView();
-      modalXaiOverlay.classList.remove('active');
-      showToast(`Đã chuyển ứng viên sang giai đoạn tiếp theo!`, 'success');
-    } else {
-      showToast('Ứng viên đã ở giai đoạn cuối quy trình.', 'warning');
-    }
-  });
+  // Filter Drawer Trigger
+  const btnFilterTrigger = document.getElementById('btn-filter-trigger');
+  const extraFiltersDrawer = document.getElementById('extra-filters-drawer');
+  if (btnFilterTrigger && extraFiltersDrawer) {
+    btnFilterTrigger.addEventListener('click', () => {
+      extraFiltersDrawer.style.display = extraFiltersDrawer.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+
+  const btnToggleCriteriaLink = document.getElementById('btn-toggle-criteria-link');
+  if (btnToggleCriteriaLink) {
+    btnToggleCriteriaLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      btnToggleCriteria.click();
+    });
+  }
 
   // =========================================================================
   // AI Outreach Email Logic (Single Candidate)

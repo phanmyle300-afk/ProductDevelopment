@@ -3,465 +3,584 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TalentScout ATS Studio — Nền Tảng Tuyển Dụng & Sàng Lọc Ứng Viên AI</title>
-  <meta name="description" content="TalentScout - Hệ thống quản trị tuyển dụng và sàng lọc hồ sơ ứng viên tự động ứng dụng LLM, XAI, Tự động phản hồi Email ứng viên Đạt/Không Đạt và Chế độ Blind Screening.">
+  <title>Tuyển Dụng — QC/Tester HN — TalentScout AI ATS Studio</title>
+  <meta name="description" content="TalentScout AI ATS Studio — Hệ thống quản trị tuyển dụng và sàng lọc hồ sơ ứng viên tự động giao diện trực quan enterprise.">
   <link rel="stylesheet" href="index.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
-  <header class="top-navbar">
-    <div class="brand-wrapper">
-      <div class="brand-icon" id="brand-logo-icon">TS</div>
-      <div>
-        <div class="brand-title">
-          TalentScout
-          <span class="ai-badge">AI ATS Studio</span>
+  <div class="enterprise-app-layout">
+
+    <!-- =========================================================================
+         1. LEFT NAVIGATION SIDEBAR (Dark Navy Enterprise Style)
+         ========================================================================= -->
+    <aside class="enterprise-sidebar">
+      <!-- App Header / Logo -->
+      <div class="sidebar-brand">
+        <div class="app-launcher-icon" title="Menu ứng dụng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="5" r="2"></circle><circle cx="12" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle>
+            <circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle>
+            <circle cx="5" cy="19" r="2"></circle><circle cx="12" cy="19" r="2"></circle><circle cx="19" cy="19" r="2"></circle>
+          </svg>
+        </div>
+        <div class="brand-text-group">
+          <div class="brand-logo-pill">
+            <span class="logo-circle">TS</span>
+            <span class="brand-name">Tuyển dụng</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Real-time KPI Stats Center -->
-    <div class="navbar-center-stats" id="navbar-stats-container">
-      <div class="stat-chip" title="Tổng số ứng viên trong đợt tuyển dụng">
-        <span class="dot"></span>
-        <span>Hồ sơ: <strong id="total-cand-count">6</strong></span>
-      </div>
-      <div class="stat-chip" title="Số lượng ứng viên thuộc nhóm Tuyển Gấp">
-        <span>Strong Hire: <strong id="strong-hire-count" style="color: var(--emerald);">3</strong></span>
-      </div>
-      <div class="stat-chip" title="Tỷ lệ ứng viên đạt chuẩn đầu vào">
-        <span>Đạt chuẩn: <strong id="qualified-rate-count" style="color: #38BDF8;">67%</strong></span>
-      </div>
-      <div class="stat-chip" title="Tiến độ phản hồi email cho ứng viên (Đạt & Từ chối)">
-        <span>Email phản hồi: <strong id="email-outreach-count" style="color: var(--amber);">3/6</strong></span>
-      </div>
-      <div class="stat-chip" title="Chỉ số Disparate Impact Ratio - Đảm bảo AI không thiên vị">
-        <span>DIR: <strong id="dir-stat-display" style="color: var(--emerald);">0.92 (EEOC ✓)</strong></span>
-      </div>
-    </div>
+      <!-- Navigation Menu Items -->
+      <nav class="sidebar-nav">
+        <ul class="sidebar-nav-list">
+          <li class="sidebar-nav-item active">
+            <a href="index.html">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </span>
+              <span class="nav-label">Tin tuyển dụng</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="candidate_detail.html">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </span>
+              <span class="nav-label">Ứng viên</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#lich">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </span>
+              <span class="nav-label">Lịch</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#kho-tiem-nang">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+              </span>
+              <span class="nav-label">Kho tiềm năng</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#chien-dich">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              </span>
+              <span class="nav-label">Chiến dịch tuyển dụng</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#cong-viec">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+              </span>
+              <span class="nav-label">Công việc</span>
+              <span class="nav-badge-count">2</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#ai-marketing">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              </span>
+              <span class="nav-label">aiMarketing</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#trao-doi">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              </span>
+              <span class="nav-label">Trao đổi với ứng viên</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#bao-cao">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              </span>
+              <span class="nav-label">Báo cáo</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#thiet-lap">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              </span>
+              <span class="nav-label">Thiết lập</span>
+            </a>
+          </li>
+          <li class="sidebar-nav-item">
+            <a href="#kien-thuc">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              </span>
+              <span class="nav-label">Kiến thức hữu ích</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
 
-    <!-- Navbar Quick Actions -->
-    <div class="navbar-actions">
-      <!-- View Mode Switcher -->
-      <div class="view-toggle-group">
-        <button class="btn-view-toggle active" id="btn-view-kanban" title="Chế độ xem Bảng Kanban kéo thả">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="10" rx="1"></rect><rect x="14" y="15" width="7" height="6" rx="1"></rect></svg>
-          Kanban
-        </button>
-        <button class="btn-view-toggle" id="btn-view-table" title="Chế độ xem Danh sách phân tích dữ liệu">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-          Bảng
-        </button>
-        <a href="candidate_detail.html" class="btn-view-toggle" style="text-decoration: none;" title="Mở Studio Phân tích Chi tiết Hồ sơ & Báo cáo XAI">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-          XAI Studio
+    <!-- =========================================================================
+         2. MAIN VIEWPORT (Light SaaS Corporate Style)
+         ========================================================================= -->
+    <div class="enterprise-main-viewport">
+
+      <!-- TOP NAVBAR -->
+      <header class="enterprise-top-navbar">
+        <div class="top-nav-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" placeholder="Tìm kiếm tin tuyển dụng, ứng viên, nhà..." class="top-search-input">
+        </div>
+
+        <div class="top-nav-right">
+          <a href="#" class="top-nav-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            Website tuyển dụng
+          </a>
+
+          <!-- Cart Icon with Badge -->
+          <div class="top-icon-badge-btn" title="Giỏ hàng dịch vụ">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            <span class="icon-bubble red">1</span>
+          </div>
+
+          <!-- Chat Icon with Badge -->
+          <div class="top-icon-badge-btn" title="Tin nhắn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span class="icon-bubble red">1</span>
+          </div>
+
+          <!-- Notifications -->
+          <div class="top-icon-btn" title="Thông báo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </div>
+
+          <!-- Help -->
+          <div class="top-icon-btn" title="Trợ giúp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+
+          <!-- Profile User Avatar -->
+          <div class="top-user-avatar-group">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80" alt="HR Manager" class="top-user-avatar">
+          </div>
+        </div>
+      </header>
+
+      <!-- JOB REQUISITION CAMPAIGN HEADER -->
+      <section class="job-campaign-bar">
+        <div class="campaign-title-group">
+          <div class="campaign-title-line">
+            <a href="#" class="btn-campaign-back" title="Quay lại danh sách tin">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </a>
+            <span class="status-dot-active" title="Đang mở tuyển"></span>
+            <h1 class="campaign-job-name" id="job-title-display">QC/Tester HN</h1>
+            <button class="btn-badge-edit" id="btn-toggle-criteria" title="Sửa tiêu chí hoặc tùy chỉnh trọng số AI">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              Sửa tin
+            </button>
+          </div>
+
+          <div class="campaign-meta-line" id="job-meta-line">
+            <span id="job-dept-tag">QC /Tester/Kiểm thử phần mềm</span>
+            <span class="sep-dot">·</span>
+            <span id="job-branch-tag">TT SAKURA Place</span>
+            <span class="sep-dot">·</span>
+            <span id="job-slots-tag">SL cần tuyển: <strong>1</strong></span>
+            <span class="sep-dot">·</span>
+            <span id="job-deadline-tag">Hạn nộp hồ sơ: 30/06/2025</span>
+            <span class="sep-dot">·</span>
+            <a href="#" class="link-more-info" id="btn-toggle-criteria-link">Xem thêm</a>
+          </div>
+        </div>
+
+        <div class="campaign-actions-group">
+          <!-- Add Candidate Button -->
+          <button class="btn-add-candidate" id="btn-open-upload-modal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Thêm ứng viên
+          </button>
+
+          <!-- Stop Accepting Submissions Button -->
+          <div class="btn-stop-receiving-group">
+            <button class="btn-stop-receiving">
+              <span class="stop-dot"></span>
+              Ngừng nhận hồ sơ
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUB-NAVIGATION TABS -->
+      <nav class="job-subtabs-bar">
+        <button class="job-tab-btn active" id="tab-btn-candidates">ỨNG VIÊN</button>
+        <button class="job-tab-btn">LỊCH PHỎNG VẤN</button>
+        <button class="job-tab-btn">THI TUYỂN TRỰC TUYẾN</button>
+        <button class="job-tab-btn">BÁO CÁO</button>
+        <a href="candidate_detail.html" class="job-tab-btn xai-radar-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          XAI RADAR STUDIO ↗
         </a>
-      </div>
+      </nav>
 
-      <!-- Batch Auto-Email Dispatcher Button -->
-      <button class="btn-auto-email" id="btn-open-auto-email-modal" title="Tự động phân loại và gửi email hàng loạt cho ứng viên Đạt và Không Đạt">
-        <span class="btn-pulse-dot"></span>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-        Tự Động Phản Hồi Mail
-      </button>
-
-      <!-- Blind Screening Mode Toggle -->
-      <div class="blind-mode-container" id="blind-mode-toggle-box" title="Bật chế độ che giấu PII, đánh giá thuần túy theo năng lực">
-        <label class="switch">
-          <input type="checkbox" id="blind-mode-checkbox">
-          <span class="slider"></span>
-        </label>
-        <span class="blind-label">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-          Blind Mode
-        </span>
-      </div>
-
-      <!-- Upload CV Button -->
-      <button class="btn-primary" id="btn-open-upload-modal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-        Nạp & Sàng Lọc CV
-      </button>
-    </div>
-  </header>
-
-  <!-- Job Requisition Hero & Criteria Banner -->
-  <section class="hero-banner" id="job-hero-section">
-    <div class="job-header-row">
-      <div class="job-meta-main">
-        <div class="job-badges-line">
-          <span class="meta-pill badge-level" id="job-level-tag">Senior Level</span>
-          <span class="meta-pill" id="job-dept-tag">Core Product Engineering</span>
-          <span class="meta-pill" id="job-salary-tag">💰 $2,500 - $3,500</span>
-          <span class="meta-pill" id="job-loc-tag">📍 TP.HCM (Hybrid)</span>
-          <span class="meta-pill" style="color: var(--emerald); border-color: rgba(16,185,129,0.3);">🟢 Đang mở tuyển</span>
-        </div>
-        <h1 id="job-title-display">Senior Fullstack Engineer (Python + React)</h1>
-      </div>
-      <div>
-        <button class="btn-secondary" id="btn-toggle-criteria" style="font-size: 0.8125rem;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          Bộ Tiêu Chí & Tùy Chỉnh Trọng Số AI
-        </button>
-      </div>
-    </div>
-
-    <!-- Criteria and Live Weight Calibrator Drawer -->
-    <div class="criteria-summary-card" id="criteria-summary-card" style="display: none;">
-      <div class="criteria-top-row">
-        <div class="criteria-list">
-          <span style="color: var(--text-muted); font-weight: 600;">Kỹ năng bắt buộc (100%):</span>
-          <span class="skill-tag-mandatory">Python</span>
-          <span class="skill-tag-mandatory">FastAPI</span>
-          <span class="skill-tag-mandatory">React</span>
-          <span class="skill-tag-mandatory">Docker</span>
-          <span style="color: var(--text-muted); margin-left: 0.5rem; font-weight: 600;">Ưu tiên:</span>
-          <span class="skill-tag-preferred">PostgreSQL</span>
-          <span class="skill-tag-preferred">Redis</span>
-          <span class="skill-tag-preferred">TypeScript</span>
-          <span class="skill-tag-preferred">AWS</span>
-          <span class="skill-tag-preferred">Kubernetes</span>
-        </div>
-        <div class="weights-summary-status">
-          <span>Tổng trọng số: <strong id="total-weight-indicator" style="color: var(--emerald);">100%</strong></span>
-        </div>
-      </div>
-
-      <!-- Live Weight Sliders -->
-      <div class="weights-sliders-grid">
-        <div class="weight-slider-box">
-          <div class="slider-header">
-            <span>Kỹ năng (Skills)</span>
-            <strong id="val-weight-skills">40%</strong>
+      <!-- TOOLBAR: STATUS DROPDOWN, SEARCH, VIEW TOGGLES -->
+      <div class="sub-toolbar-bar">
+        <div class="toolbar-left-group">
+          <!-- Status Dropdown -->
+          <div class="status-select-wrap">
+            <select class="status-dropdown-btn" id="verdict-filter-select">
+              <option value="ALL">Đang tuyển dụng (4)</option>
+              <option value="STRONG_HIRE">🌟 Tuyển Gấp (Strong Hire)</option>
+              <option value="INTERVIEW">🎯 Mời Phỏng Vấn</option>
+              <option value="CONSIDER">⚖️ Cân Nhắc</option>
+              <option value="NOT_MATCH">❌ Chưa Phù Hợp</option>
+            </select>
           </div>
-          <input type="range" id="input-weight-skills" min="10" max="60" value="40">
-        </div>
-        <div class="weight-slider-box">
-          <div class="slider-header">
-            <span>Kinh nghiệm (Exp)</span>
-            <strong id="val-weight-exp">30%</strong>
-          </div>
-          <input type="range" id="input-weight-exp" min="10" max="50" value="30">
-        </div>
-        <div class="weight-slider-box">
-          <div class="slider-header">
-            <span>Bằng cấp (Edu)</span>
-            <strong id="val-weight-edu">15%</strong>
-          </div>
-          <input type="range" id="input-weight-edu" min="5" max="30" value="15">
-        </div>
-        <div class="weight-slider-box">
-          <div class="slider-header">
-            <span>Ngữ nghĩa (Semantic)</span>
-            <strong id="val-weight-sem">15%</strong>
-          </div>
-          <input type="range" id="input-weight-sem" min="5" max="30" value="15">
-        </div>
-      </div>
 
-      <div class="weights-actions-row">
-        <span class="weights-notice-text">💡 Kéo thanh trượt để thử nghiệm kịch bản sàng lọc khác nhau. Hệ thống sẽ tự động tính lại điểm Match Score cho toàn bộ ứng viên.</span>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="btn-secondary" id="btn-reset-weights" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
-            Khôi phục mặc định
+          <!-- Blind Screening Toggle Pill -->
+          <div class="blind-toggle-pill" id="blind-mode-toggle-box" title="Bật chế độ che giấu PII, đánh giá thuần túy theo năng lực">
+            <label class="switch-small">
+              <input type="checkbox" id="blind-mode-checkbox">
+              <span class="slider-small"></span>
+            </label>
+            <span>Blind Screening</span>
+          </div>
+
+          <!-- Batch Auto Email Button -->
+          <button class="btn-outline-action" id="btn-open-auto-email-modal" title="Tự động gửi email phản hồi hàng loạt">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            Auto Email
           </button>
-          <button class="btn-primary" id="btn-apply-weights" style="font-size: 0.75rem; padding: 0.35rem 0.85rem;">
-            Áp Dụng & Tái Tính Điểm AI
+        </div>
+
+        <div class="toolbar-right-group">
+          <!-- View Toggle Icons -->
+          <div class="view-toggle-icons">
+            <button class="view-icon-btn" id="btn-view-table" title="Chế độ xem dạng Bảng danh sách">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>
+            </button>
+            <button class="view-icon-btn active" id="btn-view-kanban" title="Chế độ xem dạng Bảng Cột Kanban">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="10" rx="1"></rect><rect x="14" y="15" width="7" height="6" rx="1"></rect></svg>
+            </button>
+          </div>
+
+          <!-- Quick List Search Input -->
+          <div class="quick-list-search">
+            <input type="text" id="candidate-search-input" placeholder="Tìm kiếm nhanh trong danh sách">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+
+          <!-- Action Buttons -->
+          <button class="toolbar-action-icon-btn" title="Bộ lọc nâng cao" id="btn-filter-trigger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          </button>
+          <button class="toolbar-action-icon-btn" title="Xuất / Nhập dữ liệu">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button class="toolbar-action-icon-btn" title="Phân tích biểu đồ">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+          </button>
+          <button class="toolbar-action-icon-btn" title="Thiết lập cột">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           </button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Interactive Controls & Toolbar -->
-  <section class="toolbar-container" id="toolbar-section">
-    <div class="toolbar-left">
-      <!-- Search Input -->
-      <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="candidate-search-input" placeholder="Tìm theo tên ứng viên, kỹ năng hoặc trường học...">
+      <!-- CRITERIA & WEIGHTS CALIBRATOR DRAWER (Collapsible) -->
+      <div class="criteria-summary-card" id="criteria-summary-card" style="display: none;">
+        <div class="criteria-top-row">
+          <div class="criteria-list">
+            <span style="color: #64748B; font-weight: 600;">Kỹ năng bắt buộc (100%):</span>
+            <span class="skill-tag-mandatory">QC</span>
+            <span class="skill-tag-mandatory">Tester</span>
+            <span class="skill-tag-mandatory">Kiểm thử phần mềm</span>
+            <span class="skill-tag-mandatory">Postman</span>
+            <span style="color: #64748B; margin-left: 0.5rem; font-weight: 600;">Ưu tiên:</span>
+            <span class="skill-tag-preferred">Selenium</span>
+            <span class="skill-tag-preferred">SQL</span>
+            <span class="skill-tag-preferred">JMeter</span>
+            <span class="skill-tag-preferred">Automation Test</span>
+          </div>
+          <div class="weights-summary-status">
+            <span>Tổng trọng số: <strong id="total-weight-indicator" style="color: #10B981;">100%</strong></span>
+          </div>
+        </div>
+
+        <!-- Weight Sliders Grid -->
+        <div class="weights-sliders-grid">
+          <div class="weight-slider-box">
+            <div class="slider-header">
+              <span>Kỹ năng (Skills)</span>
+              <strong id="val-weight-skills">40%</strong>
+            </div>
+            <input type="range" id="input-weight-skills" min="10" max="60" value="40">
+          </div>
+          <div class="weight-slider-box">
+            <div class="slider-header">
+              <span>Kinh nghiệm (Exp)</span>
+              <strong id="val-weight-exp">30%</strong>
+            </div>
+            <input type="range" id="input-weight-exp" min="10" max="50" value="30">
+          </div>
+          <div class="weight-slider-box">
+            <div class="slider-header">
+              <span>Bằng cấp (Edu)</span>
+              <strong id="val-weight-edu">15%</strong>
+            </div>
+            <input type="range" id="input-weight-edu" min="5" max="30" value="15">
+          </div>
+          <div class="weight-slider-box">
+            <div class="slider-header">
+              <span>Ngữ nghĩa (Semantic)</span>
+              <strong id="val-weight-sem">15%</strong>
+            </div>
+            <input type="range" id="input-weight-sem" min="5" max="30" value="15">
+          </div>
+        </div>
+
+        <div class="weights-actions-row">
+          <span class="weights-notice-text">💡 Kéo thanh trượt để thử nghiệm các kịch bản sàng lọc khác nhau. Hệ thống sẽ tự động cập nhật Match Score toàn bộ ứng viên.</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn-secondary" id="btn-reset-weights" style="font-size: 0.75rem;">Khôi phục</button>
+            <button class="btn-primary" id="btn-apply-weights" style="font-size: 0.75rem;">Áp Dụng</button>
+          </div>
+        </div>
       </div>
 
-      <!-- Min Score Slider -->
-      <div class="score-filter-wrapper">
-        <span>Điểm tối thiểu:</span>
-        <input type="range" id="min-score-slider" min="0" max="100" value="0">
-        <span class="score-filter-val" id="min-score-val">0%</span>
+      <!-- FILTER CONTROLS BAR (Collapsible Extra Filters) -->
+      <div class="extra-filters-drawer" id="extra-filters-drawer" style="display: none;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div class="score-filter-wrapper">
+            <span style="font-size: 0.8125rem; color: #64748B;">Điểm tối thiểu:</span>
+            <input type="range" id="min-score-slider" min="0" max="100" value="0">
+            <span class="score-filter-val" id="min-score-val">0%</span>
+          </div>
+
+          <select class="select-filter" id="qualification-filter-select">
+            <option value="ALL">Tất cả chuẩn đầu vào</option>
+            <option value="QUALIFIED">🟢 Đạt Yêu Cầu</option>
+            <option value="UNQUALIFIED">🔴 Chưa Đạt</option>
+          </select>
+
+          <select class="select-filter" id="email-status-filter-select">
+            <option value="ALL">Tất cả trạng thái Email</option>
+            <option value="sent_invite">📨 Đã gửi Thư Mời</option>
+            <option value="sent_reject">🤝 Đã gửi Thư Từ Chối</option>
+            <option value="none">⏳ Chưa gửi phản hồi</option>
+          </select>
+
+          <select class="select-filter" id="sort-filter-select">
+            <option value="score_desc">Điểm AI: Cao xuống thấp</option>
+            <option value="score_asc">Điểm AI: Thấp lên cao</option>
+            <option value="exp_desc">Kinh nghiệm: Cao xuống thấp</option>
+            <option value="name_asc">Tên: A - Z</option>
+          </select>
+
+          <button class="btn-secondary" id="btn-reset-filters" style="font-size: 0.75rem;">Đặt lại bộ lọc</button>
+        </div>
       </div>
 
-      <!-- Verdict Dropdown Filter -->
-      <select class="select-filter" id="verdict-filter-select">
-        <option value="ALL">Tất cả phân loại AI</option>
-        <option value="STRONG_HIRE">🌟 Tuyển Gấp (Strong Hire)</option>
-        <option value="INTERVIEW">🎯 Phỏng Vấn (Interview)</option>
-        <option value="CONSIDER">⚖️ Cân Nhắc (Consider)</option>
-        <option value="NOT_MATCH">❌ Chưa Phù Hợp (Not Match)</option>
-      </select>
+      <!-- WORKSPACE: KANBAN BOARD VIEW -->
+      <main class="kanban-board-workspace" id="kanban-view-wrapper">
+        <div class="kanban-columns-container" id="kanban-pipeline-board">
 
-      <!-- Qualification Filter (Đạt / Không Đạt) -->
-      <select class="select-filter" id="qualification-filter-select">
-        <option value="ALL">Tất cả chuẩn đầu vào</option>
-        <option value="QUALIFIED">🟢 Đạt Yêu Cầu (Qualified)</option>
-        <option value="UNQUALIFIED">🔴 Chưa Phù Hợp (Unqualified)</option>
-      </select>
+          <!-- 1. Mới Ứng Tuyển -->
+          <div class="enterprise-kanban-col" data-stage="applied" id="column-applied">
+            <div class="col-head-bar">
+              <span class="col-title">1. Mới Ứng Tuyển</span>
+              <span class="col-count-bubble" id="count-applied">0</span>
+            </div>
+            <div class="col-cards-dropzone" id="cards-applied"></div>
+          </div>
 
-      <!-- Email Status Filter -->
-      <select class="select-filter" id="email-status-filter-select">
-        <option value="ALL">Tất cả trạng thái Email</option>
-        <option value="sent_invite">📨 Đã gửi Thư Mời</option>
-        <option value="sent_reject">🤝 Đã gửi Thư Từ Chối</option>
-        <option value="none">⏳ Chưa gửi phản hồi</option>
-      </select>
+          <!-- 2. Đã Sàng Lọc AI -->
+          <div class="enterprise-kanban-col" data-stage="screened" id="column-screened">
+            <div class="col-head-bar">
+              <span class="col-title">2. Đã Sàng Lọc AI</span>
+              <span class="col-count-bubble highlight" id="count-screened">1</span>
+            </div>
+            <div class="col-cards-dropzone" id="cards-screened"></div>
+          </div>
 
-      <!-- Sorting Selector -->
-      <select class="select-filter" id="sort-filter-select">
-        <option value="score_desc">Điểm AI: Cao xuống thấp</option>
-        <option value="score_asc">Điểm AI: Thấp lên cao</option>
-        <option value="exp_desc">Kinh nghiệm: Cao xuống thấp</option>
-        <option value="name_asc">Tên: A - Z</option>
-      </select>
+          <!-- 3. Mời Phỏng Vấn -->
+          <div class="enterprise-kanban-col" data-stage="interview" id="column-interview">
+            <div class="col-head-bar">
+              <span class="col-title">3. Mời Phỏng Vấn</span>
+              <span class="col-count-bubble" id="count-interview">2</span>
+            </div>
+            <div class="col-cards-dropzone" id="cards-interview"></div>
+          </div>
+
+          <!-- 4. Đề Nghị Việc -->
+          <div class="enterprise-kanban-col" data-stage="offer" id="column-offer">
+            <div class="col-head-bar">
+              <span class="col-title">4. Đề Nghị Việc</span>
+              <span class="col-count-bubble" id="count-offer">0</span>
+            </div>
+            <div class="col-cards-dropzone" id="cards-offer"></div>
+          </div>
+
+          <!-- 5. Từ Chối Hồ Sơ -->
+          <div class="enterprise-kanban-col" data-stage="rejected" id="column-rejected">
+            <div class="col-head-bar">
+              <span class="col-title">5. Từ Chối Hồ Sơ</span>
+              <span class="col-count-bubble" id="count-rejected">1</span>
+            </div>
+            <div class="col-cards-dropzone" id="cards-rejected"></div>
+          </div>
+
+        </div>
+      </main>
+
+      <!-- WORKSPACE: TABLE VIEW -->
+      <section class="table-view-workspace" id="table-view-wrapper" style="display: none;">
+        <div class="enterprise-table-card">
+          <table class="enterprise-ats-table" id="candidates-data-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;"><input type="checkbox" id="check-all-cands"></th>
+                <th>Ứng Viên</th>
+                <th>Điểm AI</th>
+                <th>Phân Loại</th>
+                <th>Đạt Chuẩn</th>
+                <th>Trạng Thái Email</th>
+                <th>Giai Đoạn</th>
+                <th>Kỹ Năng Khớp</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="candidates-table-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- BOTTOM PAGINATION BAR -->
+      <footer class="enterprise-pagination-bar">
+        <div class="pagination-left">
+          <span>Tổng: <strong id="total-cand-count">6</strong> bản ghi</span>
+        </div>
+        <div class="pagination-right">
+          <span>Số bản ghi/trang:</span>
+          <select class="pagination-per-page">
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span class="pagination-range">1 - 6 bản ghi</span>
+          <div class="pagination-nav-btns">
+            <button class="btn-pag-arrow" disabled>&lt;</button>
+            <button class="btn-pag-arrow" disabled>&gt;</button>
+          </div>
+        </div>
+      </footer>
+
     </div>
-
-    <div>
-      <button class="btn-secondary" id="btn-reset-filters" style="font-size: 0.8125rem;">
-        Đặt lại bộ lọc
-      </button>
-    </div>
-  </section>
+  </div>
 
   <!-- =========================================================================
-       VIEW 1: 5-Stage Kanban Pipeline Board
+       MODAL 1: EXACT AI ANALYSIS EVALUATION POPUP (MATCHES USER SCREENSHOT)
        ========================================================================= -->
-  <main class="kanban-board-wrapper" id="kanban-view-wrapper">
-    <div class="kanban-board" id="kanban-pipeline-board">
-
-      <!-- Stage 1: Applied -->
-      <div class="kanban-column" data-stage="applied" id="column-applied">
-        <div class="column-header">
-          <div class="col-title-group">
-            <span class="col-indicator applied"></span>
-            <span class="column-title">1. Mới Ứng Tuyển</span>
-          </div>
-          <span class="column-badge-count" id="count-applied">0</span>
-        </div>
-        <div class="column-cards-container" id="cards-applied"></div>
-      </div>
-
-      <!-- Stage 2: Screened -->
-      <div class="kanban-column" data-stage="screened" id="column-screened">
-        <div class="column-header">
-          <div class="col-title-group">
-            <span class="col-indicator screened"></span>
-            <span class="column-title">2. Đã Sàng Lọc AI</span>
-          </div>
-          <span class="column-badge-count" id="count-screened">0</span>
-        </div>
-        <div class="column-cards-container" id="cards-screened"></div>
-      </div>
-
-      <!-- Stage 3: Interview -->
-      <div class="kanban-column" data-stage="interview" id="column-interview">
-        <div class="column-header">
-          <div class="col-title-group">
-            <span class="col-indicator interview"></span>
-            <span class="column-title">3. Mời Phỏng Vấn</span>
-          </div>
-          <span class="column-badge-count" id="count-interview">0</span>
-        </div>
-        <div class="column-cards-container" id="cards-interview"></div>
-      </div>
-
-      <!-- Stage 4: Offer -->
-      <div class="kanban-column" data-stage="offer" id="column-offer">
-        <div class="column-header">
-          <div class="col-title-group">
-            <span class="col-indicator offer"></span>
-            <span class="column-title">4. Đề Nghị Nhận Việc</span>
-          </div>
-          <span class="column-badge-count" id="count-offer">0</span>
-        </div>
-        <div class="column-cards-container" id="cards-offer"></div>
-      </div>
-
-      <!-- Stage 5: Rejected -->
-      <div class="kanban-column" data-stage="rejected" id="column-rejected">
-        <div class="column-header">
-          <div class="col-title-group">
-            <span class="col-indicator rejected"></span>
-            <span class="column-title">5. Từ Chối Hồ Sơ</span>
-          </div>
-          <span class="column-badge-count" id="count-rejected">0</span>
-        </div>
-        <div class="column-cards-container" id="cards-rejected"></div>
-      </div>
-
-    </div>
-  </main>
-
-  <!-- =========================================================================
-       VIEW 2: Analytics Table / Data Grid View (Hidden by default)
-       ========================================================================= -->
-  <section class="table-view-wrapper" id="table-view-wrapper" style="display: none;">
-    <div class="table-card">
-      <table class="ats-data-table" id="candidates-data-table">
-        <thead>
-          <tr>
-            <th>Ứng Viên</th>
-            <th>Điểm AI</th>
-            <th>Phân Loại</th>
-            <th>Đạt Chuẩn</th>
-            <th>Trạng Thái Email</th>
-            <th>Giai Đoạn</th>
-            <th>Kỹ Năng Khớp</th>
-            <th>Thao Tác Nhanh</th>
-          </tr>
-        </thead>
-        <tbody id="candidates-table-body">
-          <!-- Populated by JS -->
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- =========================================================================
-       MODALS
-       ========================================================================= -->
-
-  <!-- Modal 1: XAI Assessment Breakdown -->
   <div class="modal-overlay" id="modal-xai-overlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          <span id="xai-modal-title">Báo Cáo Giải Trình Minh Bạch AI (XAI)</span>
-        </h3>
-        <button class="btn-close-modal" id="btn-close-xai-modal">&times;</button>
+    <div class="modal-container xai-modal-exact">
+      <!-- Close Button 'X' -->
+      <button class="btn-close-modal" id="btn-close-xai-modal" title="Đóng">&times;</button>
+
+      <!-- Candidate Profile Header: Avatar + Name + 92% Pill -->
+      <div class="modal-candidate-header">
+        <img id="xai-cand-avatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80" alt="Avatar" class="cand-modal-avatar">
+        <div class="cand-modal-meta">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h2 class="cand-modal-name" id="xai-cand-name">Nguyễn Ngọc Tuấn</h2>
+            <span class="cand-modal-score-pill" id="xai-cand-score-pill">92%</span>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-body" id="xai-modal-body">
-        <!-- 4-Pillar Score Matrix -->
-        <div>
-          <div class="xai-section-title">Ma Trận Điểm Thành Phần (4 Trọng Số)</div>
-          <div class="xai-score-matrix">
-            <div class="xai-score-card">
-              <div class="val" id="xai-score-skills">0%</div>
-              <div class="lbl" id="lbl-xai-skills">Kỹ Năng (40%)</div>
-            </div>
-            <div class="xai-score-card">
-              <div class="val" id="xai-score-exp">0%</div>
-              <div class="lbl" id="lbl-xai-exp">Kinh Nghiệm (30%)</div>
-            </div>
-            <div class="xai-score-card">
-              <div class="val" id="xai-score-edu">0%</div>
-              <div class="lbl" id="lbl-xai-edu">Học Vấn (15%)</div>
-            </div>
-            <div class="xai-score-card">
-              <div class="val" id="xai-score-sem">0%</div>
-              <div class="lbl" id="lbl-xai-sem">Ngữ Nghĩa (15%)</div>
-            </div>
-          </div>
-        </div>
+      <!-- Evaluation Criteria Table (2 Columns) -->
+      <div class="criteria-table-container">
+        <table class="criteria-analysis-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Tiêu chí</th>
+              <th style="width: 72%;">Phân tích chi tiết</th>
+            </tr>
+          </thead>
+          <tbody id="criteria-analysis-tbody">
+            <!-- Dynamically populated rows with vertical color bar, circular meter, text -->
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Matched & Missing Skills -->
-        <div>
-          <div class="xai-section-title">Kỹ Năng Khớp & Lỗ Hổng Kỹ Năng (Skill Gaps)</div>
-          <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-            <div>
-              <span style="font-size: 0.75rem; color: #34D399; font-weight: 700;">✓ KỸ NĂNG ĐẠT CHUẨN:</span>
-              <div class="card-skills-list" id="xai-matched-skills-list"></div>
-            </div>
-            <div>
-              <span style="font-size: 0.75rem; color: #FB7185; font-weight: 700;">✗ KỸ NĂNG CÒN THIẾU:</span>
-              <div class="card-skills-list" id="xai-missing-skills-list"></div>
-            </div>
-          </div>
+      <!-- AI Synthesis Summary Box -->
+      <div class="ai-summary-box">
+        <div class="ai-summary-title">
+          <span class="robot-icon">🤖</span>
+          <span>Tổng kết</span>
         </div>
+        <p class="ai-summary-paragraph" id="xai-summary-paragraph">
+          <!-- Text with bold lead -->
+        </p>
+      </div>
 
-        <!-- Strengths -->
-        <div>
-          <div class="xai-section-title">Điểm Mạnh Nổi Bật (Key Strengths)</div>
-          <ul class="bullet-insights" id="xai-strengths-list"></ul>
-        </div>
-
-        <!-- Suggested Interview Questions -->
-        <div>
-          <div class="xai-section-title">Gợi Ý Câu Hỏi Đào Sâu Khi Phỏng Vấn (Areas to Probe)</div>
-          <ul class="bullet-insights probes" id="xai-probes-list"></ul>
-        </div>
-
-        <!-- Modal Actions -->
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
-          <button class="btn-secondary" id="btn-xai-to-email">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-            Soạn Email Tự Động
-          </button>
-          <button class="btn-primary" id="btn-xai-move-next">
-            Chuyển Sang Vòng Kế Tiếp →
-          </button>
+      <!-- Modal Footer -->
+      <div class="modal-exact-footer">
+        <div class="modal-footer-note">*Dữ liệu minh họa</div>
+        <div class="modal-footer-actions">
+          <a href="candidate_detail.html" id="btn-modal-open-full-studio" class="btn-view-radar-link" title="Xem Radar Chart & Báo Cáo Chuyên Sâu">
+            Mở Chi Tiết & Radar ↗
+          </a>
+          <button class="btn-exact-close" id="btn-close-xai-modal-btn">Đóng</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal 2: AI Outreach Email Generator (Single Candidate) -->
+  <!-- =========================================================================
+       MODAL 2: AI OUTREACH EMAIL STUDIO (Single Candidate)
+       ========================================================================= -->
   <div class="modal-overlay" id="modal-email-overlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-          <span id="email-modal-header-title">Trình Sinh Email Giao Tiếp AI (AI Outreach Studio)</span>
+    <div class="modal-container" style="max-width: 650px; background: #ffffff; border-radius: 12px; padding: 1.75rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.1rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+          ✉️ Trình Soạn Thảo Email Tuyển Dụng AI
         </h3>
         <button class="btn-close-modal" id="btn-close-email-modal">&times;</button>
       </div>
 
-      <div class="modal-body">
-        <!-- Tone Selector -->
-        <div>
-          <div class="email-tone-selector">
-            <button class="email-tone-btn active" id="btn-tone-invite" data-tone="invite">
-              📨 Thư Mời Phỏng Vấn (Khi CV ĐẠT YÊU CẦU)
-            </button>
-            <button class="email-tone-btn" id="btn-tone-reject" data-tone="reject">
-              🤝 Thư Từ Chối Xây Dựng (Khi CV CHƯA PHÙ HỢP)
-            </button>
-          </div>
+      <div class="email-modal-body">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.3rem;">Người nhận (To):</label>
+          <input type="text" id="email-recipient-field" readonly class="input-text-light" style="width: 100%;">
         </div>
 
-        <!-- Recipient Information -->
-        <div class="email-field-group">
-          <label>Người nhận (To):</label>
-          <input type="text" id="email-recipient-field" readonly>
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.3rem;">Tiêu đề thư (Subject):</label>
+          <input type="text" id="email-subject-field" class="input-text-light" style="width: 100%;">
         </div>
 
-        <!-- Email Subject -->
-        <div class="email-field-group">
-          <label>Tiêu đề thư (Subject):</label>
-          <input type="text" id="email-subject-field">
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.3rem;">Nội dung thư (AI cá nhân hóa):</label>
+          <textarea id="email-body-field" class="textarea-light" style="width: 100%; height: 200px;"></textarea>
         </div>
 
-        <!-- Email Body -->
-        <div class="email-field-group">
-          <label>Nội dung thư (AI tự động cá nhân hóa theo năng lực và lỗ hổng thực tế):</label>
-          <textarea id="email-body-field"></textarea>
-        </div>
-
-        <!-- Modal Actions -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
-          <button class="btn-secondary" id="btn-regenerate-email">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-            Sinh Lại Bằng AI
-          </button>
-          <div style="display: flex; gap: 0.75rem;">
-            <button class="btn-secondary" id="btn-copy-email">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              Sao Chép
-            </button>
-            <button class="btn-primary" id="btn-send-email-confirm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              Gửi Email Qua SMTP
-            </button>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+          <button class="btn-secondary" id="btn-regenerate-email">🔄 Sinh Lại Bằng AI</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn-secondary" id="btn-copy-email">📋 Sao Chép</button>
+            <button class="btn-primary" id="btn-send-email-confirm">🚀 Gửi Email Qua SMTP</button>
           </div>
         </div>
       </div>
@@ -469,133 +588,69 @@
   </div>
 
   <!-- =========================================================================
-       Modal 3: ⚡ HỆ THỐNG TỰ ĐỘNG PHẢN HỒI EMAIL TOÀN BỘ (BATCH AUTO-DISPATCHER)
+       MODAL 3: BATCH AUTO-EMAIL DISPATCHER
        ========================================================================= -->
   <div class="modal-overlay" id="modal-batch-email-overlay">
-    <div class="modal-container batch-modal-wide">
-      <div class="modal-header">
-        <h3>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          <span>Hệ Thống Tự Động Phản Hồi Mail Ứng Viên (Batch Auto-Email Engine)</span>
+    <div class="modal-container batch-modal-wide" style="max-width: 680px; background: #ffffff; border-radius: 12px; padding: 1.75rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.1rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+          ⚡ Gửi Email Tự Động Toàn Bộ Ứng Viên (Zero-Ghosting)
         </h3>
-        <button class="btn-close-modal" id="btn-close-batch-email-modal">&times;</button>
+        <button class="btn-close-modal" id="btn-close-batch-modal">&times;</button>
       </div>
 
-      <div class="modal-body">
-        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-          Hệ thống AI tự động phân loại ứng viên theo tiêu chuẩn đầu vào. Ứng viên <strong>Đạt Yêu Cầu</strong> sẽ nhận <em>Thư mời phỏng vấn kỹ thuật</em>; ứng viên <strong>Chưa Phù Hợp</strong> sẽ nhận <em>Thư từ chối mang tính xây dựng kèm giải trình lỗ hổng kỹ năng</em>.
+      <div class="batch-modal-body">
+        <p style="font-size: 0.875rem; color: #475569; line-height: 1.5; margin-bottom: 1rem;">
+          Hệ thống sẽ tự động quét danh sách ứng viên, phân loại kết quả và gửi email tương ứng (Thư Mời cho ứng viên ĐẠT, Thư Góp Ý Xây Dựng cho ứng viên CHƯA ĐẠT).
         </p>
 
-        <!-- 2 Column Breakdown: Qualified vs Unqualified -->
-        <div class="batch-split-grid">
-          <!-- Qualified Group -->
-          <div class="batch-group-card qualified-group">
-            <div class="batch-group-header">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span class="group-dot green"></span>
-                <strong>1. Nhóm ĐẠT YÊU CẦU (<span id="batch-count-pass">0</span>)</strong>
-              </div>
-              <span class="batch-action-pill pass">Gửi Thư Mời Phỏng Vấn</span>
-            </div>
-            <div class="batch-candidate-list" id="batch-list-pass">
-              <!-- Rendered by JS -->
-            </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #166534; margin-bottom: 0.25rem;">ỨNG VIÊN ĐẠT YÊU CẦU</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #15803d;" id="batch-qualified-count">0 hồ sơ</div>
+            <div style="font-size: 0.75rem; color: #166534; margin-top: 0.25rem;">Thư Mời Phỏng Vấn Kỹ Thuật</div>
           </div>
-
-          <!-- Unqualified Group -->
-          <div class="batch-group-card unqualified-group">
-            <div class="batch-group-header">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span class="group-dot red"></span>
-                <strong>2. Nhóm CHƯA PHÙ HỢP (<span id="batch-count-reject">0</span>)</strong>
-              </div>
-              <span class="batch-action-pill reject">Gửi Thư Từ Chối Xây Dựng</span>
-            </div>
-            <div class="batch-candidate-list" id="batch-list-reject">
-              <!-- Rendered by JS -->
-            </div>
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #991b1b; margin-bottom: 0.25rem;">ỨNG VIÊN CHƯA PHÙ HỢP</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #b91c1c;" id="batch-unqualified-count">0 hồ sơ</div>
+            <div style="font-size: 0.75rem; color: #991b1b; margin-top: 0.25rem;">Thư Góp Ý Skill Gap Thấu Cảm</div>
           </div>
         </div>
 
-        <!-- Dispatch Progress and Console Log -->
-        <div class="batch-progress-box" id="batch-progress-box" style="display: none;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 0.4rem;">
-            <span id="batch-status-label" style="color: #67E8F9; font-weight: 600;">Đang khởi tạo máy chủ SMTP...</span>
-            <span id="batch-percent-label" style="color: #FFFFFF; font-weight: 700;">0%</span>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="batch-progress-bar-fill"></div>
-          </div>
-          <div class="batch-console-log" id="batch-console-log"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+          <button class="btn-secondary" id="btn-cancel-batch">Hủy Bỏ</button>
+          <button class="btn-primary" id="btn-confirm-batch-send">🚀 Xác Nhận Gửi Hàng Loạt</button>
         </div>
-
-        <!-- Modal Actions -->
-        <div class="batch-footer-actions">
-          <div class="batch-stats-summary" id="batch-summary-stats-text">
-            Sẵn sàng xử lý tự động cho toàn bộ ứng viên trong chiến dịch.
-          </div>
-          <div style="display: flex; gap: 0.75rem;">
-            <button class="btn-secondary" id="btn-cancel-batch-email">
-              Đóng
-            </button>
-            <button class="btn-primary" id="btn-execute-batch-dispatch">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              🚀 Kích Hoạt Gửi Tự Động Toàn Bộ
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
 
-  <!-- Modal 4: Upload & Ingest CV -->
+  <!-- =========================================================================
+       MODAL 4: UPLOAD & SCREEN CV MODAL
+       ========================================================================= -->
   <div class="modal-overlay" id="modal-upload-overlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          Nạp & Sàng Lọc Hồ Sơ Ứng Viên Bằng AI
+    <div class="modal-container" style="max-width: 600px; background: #ffffff; border-radius: 12px; padding: 1.75rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.1rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+          📄 Nạp & Sàng Lọc CV Tự Động Bằng AI
         </h3>
         <button class="btn-close-modal" id="btn-close-upload-modal">&times;</button>
       </div>
 
-      <div class="modal-body">
-        <!-- Drag & Drop Zone -->
-        <div class="dropzone-box" id="cv-dropzone">
-          <div class="dropzone-icon">📄</div>
-          <h4 style="color: #FFFFFF; margin-bottom: 0.35rem;">Kéo thả tệp CV (.PDF, .DOCX) vào đây</h4>
-          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">Hệ thống hỗ trợ tệp dung lượng tối đa 10MB và trích xuất thực thể NER tự động</p>
-          <input type="file" id="cv-file-input" accept=".pdf,.docx,.doc" style="display: none;">
-          <button class="btn-secondary" id="btn-trigger-file-select" style="font-size: 0.8125rem;">
-            Chọn Tệp Từ Máy Tính
-          </button>
-        </div>
+      <div class="upload-dropzone" id="cv-dropzone" style="border: 2px dashed #cbd5e1; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; background: #f8fafc; cursor: pointer; margin-bottom: 1.25rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.5" style="margin: 0 auto 0.75rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Kéo thả tệp CV (.pdf, .docx, .md) vào đây</div>
+        <div style="font-size: 0.8rem; color: #64748b;">Hoặc bấm vào để chọn từ máy tính của bạn</div>
+        <input type="file" id="cv-file-input" multiple accept=".pdf,.docx,.doc,.txt,.md" style="display: none;">
+      </div>
 
-        <!-- Extraction Progress Simulation Card -->
-        <div class="upload-progress-card" id="upload-progress-card">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8125rem;">
-            <span id="progress-step-text" style="color: #67E8F9; font-weight: 600;">Đang tải tệp lên...</span>
-            <span id="progress-percent-text" style="color: #FFFFFF; font-weight: 700;">0%</span>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="progress-bar-fill"></div>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted);" id="progress-sub-text">Bóc tách cấu trúc bằng PyMuPDF & trích xuất thực thể NER Spacy...</p>
-        </div>
-
-        <!-- 1-Click Quick Presets for Instant Demo -->
-        <div>
-          <div class="xai-section-title" style="margin-top: 0.5rem;">Hoặc thử nghiệm nhanh với dữ liệu mẫu (1 Cú Click):</div>
-          <div class="presets-container" id="sample-presets-list">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button class="btn-secondary" id="btn-cancel-upload">Đóng</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast Container -->
+  <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->

@@ -1,0 +1,15 @@
+{
+  "name": "talentscout-web-studio",
+  "version": "1.0.0",
+  "description": "TalentScout ATS Studio Frontend",
+  "scripts": {
+    "dev": "node ../../scripts/serve.js",
+    "start": "node ../../scripts/serve.js"
+  },
+  "keywords": [
+    "ats-studio",
+    "recruiter-dashboard"
+  ],
+  "author": "TalentScout Core Team",
+  "license": "MIT"
+}

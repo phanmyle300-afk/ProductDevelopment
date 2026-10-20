@@ -1,0 +1,22 @@
+{
+  "name": "talentscout-ai-ats",
+  "version": "1.0.0",
+  "description": "TalentScout - Nền tảng Quản trị Tuyển dụng và Sàng lọc Hồ sơ Ứng viên Thông minh bằng AI",
+  "main": "scripts/serve.js",
+  "scripts": {
+    "dev": "node scripts/serve.js",
+    "web": "node scripts/serve.js",
+    "start": "node scripts/serve.js",
+    "serve": "node scripts/serve.js"
+  },
+  "keywords": [
+    "ats",
+    "recruitment",
+    "ai-screening",
+    "xai",
+    "eeoc-four-fifths",
+    "blind-screening"
+  ],
+  "author": "TalentScout Core Team",
+  "license": "MIT"
+}
