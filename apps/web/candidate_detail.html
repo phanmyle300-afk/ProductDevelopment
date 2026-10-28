@@ -8,6 +8,172 @@
   <link rel="stylesheet" href="index.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
   <style>
+    /* ==========================================================================
+       TOP NAVBAR STYLING (Enterprise Light SaaS Header)
+       ========================================================================== */
+    .top-navbar {
+      height: 60px;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-color, #E2E8F0);
+      padding: 0 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .brand-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 0.875rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .ai-badge {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      background: #EFF6FF;
+      color: #2563EB;
+      border: 1px solid #BFDBFE;
+    }
+
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .blind-mode-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 9999px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .blind-mode-container:hover {
+      background: #F1F5F9;
+      border-color: #94A3B8;
+    }
+    .blind-mode-container.active {
+      background: #FEF3C7;
+      border-color: #FCD34D;
+    }
+    .blind-mode-container.active .blind-label {
+      color: #92400E;
+    }
+
+    .blind-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* Switch Component */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      margin: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #CBD5E1;
+      transition: .25s ease;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .25s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .switch input:checked + .slider {
+      background-color: #2563EB;
+    }
+    .switch input:checked + .slider:before {
+      transform: translateX(14px);
+    }
+
+    /* Kanban ATS Nav Link Button */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      color: #334155;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .btn-secondary:hover {
+      background: #EFF6FF;
+      border-color: #BFDBFE;
+      color: #2563EB;
+    }
+
     /* Styling dành riêng cho Trang Chi Tiết Hồ Sơ Candidate Detail Studio */
     .detail-container {
       max-width: 1400px;
@@ -739,7 +905,7 @@
 
   <!-- Top Navigation Bar -->
   <header class="top-navbar">
-    <div class="brand-wrapper">
+    <a href="index.html" class="brand-wrapper" title="Quay lại Dashboard Tuyển Dụng">
       <div class="brand-icon">TS</div>
       <div>
         <div class="brand-title">
@@ -747,17 +913,7 @@
           <span class="ai-badge">XAI Detail Studio</span>
         </div>
       </div>
-    </div>
-
-    <!-- Center Audit Stats -->
-    <div class="navbar-center-stats">
-      <div class="stat-chip" title="Chỉ số Disparate Impact Ratio tuân thủ quy tắc 4/5 EEOC">
-        <span>Đạo Đức AI: <strong id="dir-stat-display" style="color: var(--emerald);">DIR = 0.92 (Pass ✓)</strong></span>
-      </div>
-      <div class="stat-chip" title="Trạng thái phân tích XAI">
-        <span>XAI Status: <strong style="color: var(--secondary);">100% Verified</strong></span>
-      </div>
-    </div>
+    </a>
 
     <!-- Right Controls -->
     <div class="navbar-actions">

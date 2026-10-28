@@ -42,11 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     interview: document.getElementById('count-interview'),
     offer: document.getElementById('count-offer'),
     rejected: document.getElementById('count-rejected'),
-    total: document.getElementById('total-cand-count'),
-    strongHire: document.getElementById('strong-hire-count'),
-    qualifiedRate: document.getElementById('qualified-rate-count'),
-    emailOutreach: document.getElementById('email-outreach-count'),
-    dirStat: document.getElementById('dir-stat-display')
+    total: document.getElementById('total-cand-count')
   };
 
   // View Switchers
@@ -88,8 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Single Candidate Modals
   const modalXaiOverlay = document.getElementById('modal-xai-overlay');
   const btnCloseXai = document.getElementById('btn-close-xai-modal');
-  const btnXaiToEmail = document.getElementById('btn-xai-to-email');
-  const btnXaiMoveNext = document.getElementById('btn-xai-move-next');
 
   const modalEmailOverlay = document.getElementById('modal-email-overlay');
   const btnCloseEmail = document.getElementById('btn-close-email-modal');
@@ -312,17 +306,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Update Top Stats
-    countElements.applied.textContent = stageCounts.applied;
-    countElements.screened.textContent = stageCounts.screened;
-    countElements.interview.textContent = stageCounts.interview;
-    countElements.offer.textContent = stageCounts.offer;
-    countElements.rejected.textContent = stageCounts.rejected;
-    countElements.total.textContent = candidates.length;
-    countElements.strongHire.textContent = strongHireCount;
+    if (countElements.applied) countElements.applied.textContent = stageCounts.applied;
+    if (countElements.screened) countElements.screened.textContent = stageCounts.screened;
+    if (countElements.interview) countElements.interview.textContent = stageCounts.interview;
+    if (countElements.offer) countElements.offer.textContent = stageCounts.offer;
+    if (countElements.rejected) countElements.rejected.textContent = stageCounts.rejected;
+    if (countElements.total) countElements.total.textContent = candidates.length;
+    if (countElements.strongHire) countElements.strongHire.textContent = strongHireCount;
 
-    const qualifiedPct = candidates.length > 0 ? Math.round((qualifiedCount / candidates.length) * 100) : 0;
-    countElements.qualifiedRate.textContent = `${qualifiedPct}%`;
-    countElements.emailOutreach.textContent = `${emailSentCount}/${candidates.length}`;
+    if (countElements.qualifiedRate) {
+      const qualifiedPct = candidates.length > 0 ? Math.round((qualifiedCount / candidates.length) * 100) : 0;
+      countElements.qualifiedRate.textContent = `${qualifiedPct}%`;
+    }
+    if (countElements.emailOutreach) {
+      countElements.emailOutreach.textContent = `${emailSentCount}/${candidates.length}`;
+    }
+
+    // Update Verdict Filter dropdown text if present
+    if (verdictSelect && verdictSelect.options && verdictSelect.options[0]) {
+      verdictSelect.options[0].textContent = `Tất cả ứng viên (${candidates.length})`;
+    }
 
     // Populate filtered cards into columns
     filtered.forEach(cand => {
@@ -335,9 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Display empty placeholder in column if 0 cards
     Object.entries(kanbanColumns).forEach(([stage, colElem]) => {
-      if (colElem.children.length === 0) {
+      if (colElem && colElem.children.length === 0) {
         const emptyNotice = document.createElement('div');
-        emptyNotice.style.cssText = 'padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.8125rem; border: 1px dashed rgba(255,255,255,0.06); border-radius: 12px;';
+        emptyNotice.style.cssText = 'padding: 1.5rem 1rem; text-align: center; color: #94A3B8; font-size: 0.8125rem; border: 1px dashed #CBD5E1; border-radius: 8px; background: #F8FAFC; margin: 0.5rem;';
         emptyNotice.textContent = 'Chưa có hồ sơ trong giai đoạn này';
         colElem.appendChild(emptyNotice);
       }
@@ -437,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     card.addEventListener('dragend', () => {
       card.classList.remove('dragging');
       draggedCandidateId = null;
-      document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over'));
+      document.querySelectorAll('.enterprise-kanban-col, .kanban-column').forEach(c => c.classList.remove('drag-over'));
     });
 
     // Card Action Click Events
@@ -549,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // Drag and Drop Pipeline Handling
   // =========================================================================
-  document.querySelectorAll('.kanban-column').forEach(col => {
+  document.querySelectorAll('.enterprise-kanban-col, .kanban-column').forEach(col => {
     col.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -932,47 +935,53 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedCandidate = candidate;
     emailTone = defaultTone;
 
-    if (emailTone === 'invite') {
-      btnToneInvite.classList.add('active');
-      btnToneReject.classList.remove('active');
-    } else {
-      btnToneReject.classList.add('active');
-      btnToneInvite.classList.remove('active');
+    if (btnToneInvite && btnToneReject) {
+      if (emailTone === 'invite') {
+        btnToneInvite.classList.add('active');
+        btnToneReject.classList.remove('active');
+      } else {
+        btnToneReject.classList.add('active');
+        btnToneInvite.classList.remove('active');
+      }
     }
 
     const recipient = isBlindMode 
       ? `${candidate.blind_id} <email-protected@talentscout.ai>`
       : `${candidate.name} <${candidate.email}>`;
-    emailRecipient.value = recipient;
+    if (emailRecipient) emailRecipient.value = recipient;
 
     const emailData = generateEmailContent(candidate, emailTone);
-    emailSubject.value = emailData.subject;
-    emailBody.value = emailData.body;
+    if (emailSubject) emailSubject.value = emailData.subject;
+    if (emailBody) emailBody.value = emailData.body;
 
-    modalEmailOverlay.classList.add('active');
+    if (modalEmailOverlay) modalEmailOverlay.classList.add('active');
   }
 
-  btnToneInvite.addEventListener('click', () => {
-    emailTone = 'invite';
-    btnToneInvite.classList.add('active');
-    btnToneReject.classList.remove('active');
-    if (selectedCandidate) {
-      const emailData = generateEmailContent(selectedCandidate, 'invite');
-      emailSubject.value = emailData.subject;
-      emailBody.value = emailData.body;
-    }
-  });
+  if (btnToneInvite) {
+    btnToneInvite.addEventListener('click', () => {
+      emailTone = 'invite';
+      btnToneInvite.classList.add('active');
+      if (btnToneReject) btnToneReject.classList.remove('active');
+      if (selectedCandidate) {
+        const emailData = generateEmailContent(selectedCandidate, 'invite');
+        if (emailSubject) emailSubject.value = emailData.subject;
+        if (emailBody) emailBody.value = emailData.body;
+      }
+    });
+  }
 
-  btnToneReject.addEventListener('click', () => {
-    emailTone = 'reject';
-    btnToneReject.classList.add('active');
-    btnToneInvite.classList.remove('active');
-    if (selectedCandidate) {
-      const emailData = generateEmailContent(selectedCandidate, 'reject');
-      emailSubject.value = emailData.subject;
-      emailBody.value = emailData.body;
-    }
-  });
+  if (btnToneReject) {
+    btnToneReject.addEventListener('click', () => {
+      emailTone = 'reject';
+      btnToneReject.classList.add('active');
+      if (btnToneInvite) btnToneInvite.classList.remove('active');
+      if (selectedCandidate) {
+        const emailData = generateEmailContent(selectedCandidate, 'reject');
+        if (emailSubject) emailSubject.value = emailData.subject;
+        if (emailBody) emailBody.value = emailData.body;
+      }
+    });
+  }
 
   btnRegenEmail.addEventListener('click', () => {
     if (selectedCandidate) {
@@ -1074,21 +1083,34 @@ document.addEventListener('DOMContentLoaded', () => {
     modalBatchEmailOverlay.classList.add('active');
   }
 
-  btnOpenBatchEmail.addEventListener('click', openBatchEmailModal);
-  btnCloseBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
-  btnCancelBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+  if (btnOpenBatchEmail) btnOpenBatchEmail.addEventListener('click', openBatchEmailModal);
+  if (btnCloseBatchEmail) btnCloseBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+  const btnCloseBatchAlt = document.getElementById('btn-close-batch-modal');
+  if (btnCloseBatchAlt) btnCloseBatchAlt.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+  if (btnCancelBatchEmail) btnCancelBatchEmail.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
+  const btnCancelBatchAlt = document.getElementById('btn-cancel-batch');
+  if (btnCancelBatchAlt) btnCancelBatchAlt.addEventListener('click', () => modalBatchEmailOverlay.classList.remove('active'));
 
   // Execute Batch Sending Simulation
-  btnExecuteBatchDispatch.addEventListener('click', () => {
-    btnExecuteBatchDispatch.disabled = true;
-    btnExecuteBatchDispatch.style.opacity = '0.5';
-    batchProgressBox.style.display = 'block';
+  function handleBatchDispatch() {
+    if (btnExecuteBatchDispatch) {
+      btnExecuteBatchDispatch.disabled = true;
+      btnExecuteBatchDispatch.style.opacity = '0.5';
+    }
+    const btnConfirmBatchAlt = document.getElementById('btn-confirm-batch-send');
+    if (btnConfirmBatchAlt) {
+      btnConfirmBatchAlt.disabled = true;
+      btnConfirmBatchAlt.style.opacity = '0.5';
+    }
+    if (batchProgressBox) batchProgressBox.style.display = 'block';
 
     const queue = [...candidates];
     const total = queue.length;
     let processed = 0;
 
-    batchConsoleLog.innerHTML = `<div class="log-info">[INIT] Đang kết nối giao thức SMTP an toàn (SSL/TLS cổng 587)...</div>`;
+    if (batchConsoleLog) {
+      batchConsoleLog.innerHTML = `<div class="log-info">[INIT] Đang kết nối giao thức SMTP an toàn (SSL/TLS cổng 587)...</div>`;
+    }
 
     function logLine(msg, type = 'info') {
       const timeStr = new Date().toLocaleTimeString('vi-VN');
@@ -1133,19 +1155,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
       }
     }, 450);
-  });
+  }
+
+  if (btnExecuteBatchDispatch) btnExecuteBatchDispatch.addEventListener('click', handleBatchDispatch);
+  const btnConfirmBatchAlt = document.getElementById('btn-confirm-batch-send');
+  if (btnConfirmBatchAlt) btnConfirmBatchAlt.addEventListener('click', handleBatchDispatch);
 
   // =========================================================================
   // Resume Upload & Ingest Simulation
   // =========================================================================
   function renderPresets() {
+    if (!samplePresetsList) return;
     samplePresetsList.innerHTML = SAMPLE_PRESETS.map((preset, idx) => `
-      <div class="preset-item" data-idx="${idx}">
+      <div class="preset-item" data-idx="${idx}" style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 6px; padding: 0.6rem 0.85rem; cursor: pointer;">
         <div>
-          <strong>${preset.name}</strong>
-          <span>${preset.filename} • ${preset.filesize} • ${preset.exp} năm KN</span>
+          <strong style="font-size: 0.8125rem; color: #0F172A; display: block;">${preset.name}</strong>
+          <span style="font-size: 0.72rem; color: #64748B;">${preset.filename} • ${preset.filesize} • ${preset.exp} năm KN</span>
         </div>
-        <button class="btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Nạp Nhanh</button>
+        <button class="btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; pointer-events: none;">Nạp Nhanh</button>
       </div>
     `).join('');
 
@@ -1157,32 +1184,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnOpenUploadModal.addEventListener('click', () => {
-    modalUploadOverlay.classList.add('active');
-    uploadProgressCard.classList.remove('active');
-    renderPresets();
-  });
+  if (btnOpenUploadModal) {
+    btnOpenUploadModal.addEventListener('click', () => {
+      if (modalUploadOverlay) modalUploadOverlay.classList.add('active');
+      if (uploadProgressCard) {
+        uploadProgressCard.classList.remove('active');
+        uploadProgressCard.style.display = 'none';
+      }
+      renderPresets();
+    });
+  }
 
-  btnCloseUpload.addEventListener('click', () => modalUploadOverlay.classList.remove('active'));
+  if (btnCloseUpload) {
+    btnCloseUpload.addEventListener('click', () => {
+      if (modalUploadOverlay) modalUploadOverlay.classList.remove('active');
+    });
+  }
 
-  btnTriggerFile.addEventListener('click', () => cvFileInput.click());
-  cvFileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      const file = e.target.files[0];
-      simulateUpload({
-        name: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
-        filename: file.name,
-        filesize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        exp: 3.8,
-        skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL"],
-        score: 82,
-        category: "INTERVIEW",
-        is_qualified: true,
-        summary: "Ứng viên tải lên từ máy tính cá nhân qua hệ thống Ingestion API.",
-        university: "Đại học Bách Khoa"
-      });
-    }
-  });
+  const btnCancelUploadAlt = document.getElementById('btn-cancel-upload');
+  if (btnCancelUploadAlt) {
+    btnCancelUploadAlt.addEventListener('click', () => {
+      if (modalUploadOverlay) modalUploadOverlay.classList.remove('active');
+    });
+  }
+
+  if (btnTriggerFile && cvFileInput) {
+    btnTriggerFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cvFileInput.click();
+    });
+  }
+
+  if (cvDropzone && cvFileInput) {
+    cvDropzone.addEventListener('click', (e) => {
+      if (e.target !== cvFileInput) cvFileInput.click();
+    });
+  }
+
+  if (cvFileInput) {
+    cvFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        simulateUpload({
+          name: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+          filename: file.name,
+          filesize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+          exp: 3.8,
+          skills: ["Python", "FastAPI", "React", "Docker", "PostgreSQL"],
+          score: 82,
+          category: "INTERVIEW",
+          is_qualified: true,
+          summary: "Ứng viên tải lên từ máy tính cá nhân qua hệ thống Ingestion API.",
+          university: "Đại học Bách Khoa"
+        });
+      }
+    });
+  }
 
   // Dropzone drag events
   ['dragenter', 'dragover'].forEach(name => {
@@ -1218,28 +1275,31 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function simulateUpload(sample) {
-    uploadProgressCard.classList.add('active');
-    progressBarFill.style.width = '0%';
-    progressStepText.textContent = '1/4: Đang đọc tệp và phân tách cấu trúc PDF...';
-    progressPercentText.textContent = '20%';
-    progressBarFill.style.width = '20%';
+    if (uploadProgressCard) {
+      uploadProgressCard.classList.add('active');
+      uploadProgressCard.style.display = 'block';
+    }
+    if (progressBarFill) progressBarFill.style.width = '0%';
+    if (progressStepText) progressStepText.textContent = '1/4: Đang đọc tệp và phân tách cấu trúc PDF...';
+    if (progressPercentText) progressPercentText.textContent = '20%';
+    if (progressBarFill) progressBarFill.style.width = '20%';
 
     setTimeout(() => {
-      progressStepText.textContent = '2/4: Trích xuất thực thể NER Spacy & Từ điển ESCO...';
-      progressPercentText.textContent = '55%';
-      progressBarFill.style.width = '55%';
+      if (progressStepText) progressStepText.textContent = '2/4: Trích xuất thực thể NER Spacy & Từ điển ESCO...';
+      if (progressPercentText) progressPercentText.textContent = '55%';
+      if (progressBarFill) progressBarFill.style.width = '55%';
     }, 600);
 
     setTimeout(() => {
-      progressStepText.textContent = '3/4: Tạo vector embedding BGE-M3 & So khớp ngữ nghĩa...';
-      progressPercentText.textContent = '85%';
-      progressBarFill.style.width = '85%';
+      if (progressStepText) progressStepText.textContent = '3/4: Tạo vector embedding BGE-M3 & So khớp ngữ nghĩa...';
+      if (progressPercentText) progressPercentText.textContent = '85%';
+      if (progressBarFill) progressBarFill.style.width = '85%';
     }, 1200);
 
     setTimeout(() => {
-      progressStepText.textContent = '4/4: Tổng hợp giải trình XAI & Chuẩn bị phản hồi tự động...';
-      progressPercentText.textContent = '100%';
-      progressBarFill.style.width = '100%';
+      if (progressStepText) progressStepText.textContent = '4/4: Tổng hợp giải trình XAI & Chuẩn bị phản hồi tự động...';
+      if (progressPercentText) progressPercentText.textContent = '100%';
+      if (progressBarFill) progressBarFill.style.width = '100%';
 
       const newId = `cand-${Date.now().toString().slice(-4)}`;
       const randomBlindNum = Math.floor(1000 + Math.random() * 9000);
@@ -1291,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentView === 'table') renderTableView();
 
       setTimeout(() => {
-        modalUploadOverlay.classList.remove('active');
+        if (modalUploadOverlay) modalUploadOverlay.classList.remove('active');
         const qualifyText = newCand.is_qualified ? '🟢 ĐẠT YÊU CẦU' : '🔴 CHƯA PHÙ HỢP';
         showToast(`🎉 Đã nạp thành công "${newCand.name}" (${newCand.overall_score}% - ${qualifyText}) vào cột "Đã Sàng Lọc AI"!`, 'success');
       }, 700);

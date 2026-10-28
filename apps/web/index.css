@@ -232,6 +232,20 @@ body {
   z-index: 30;
 }
 
+.top-navbar {
+  height: 60px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border-color, #E2E8F0);
+  padding: 0 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
 .top-nav-search {
   display: flex;
   align-items: center;
