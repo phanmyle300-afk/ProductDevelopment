@@ -52,3 +52,17 @@ Khi viết code tích hợp AI services, phải thiết lập cơ chế fallback
 - Suggest a concise commit message that describes the completed work.
 - Never commit or push automatically. Ask the user for explicit approval before either action, and push only to the confirmed branch and remote.
 - Do not prepare a commit containing secrets, unfinished work, or changes that have not been validated when validation is applicable.
+
+## 7. Agent Skills System & Orchestration (Theo Chuẩn Antigravity Skills)
+Hệ thống tích hợp 66 Agent Skills chuẩn hóa đặt tại `.agents/skills/` theo đặc tả mở của Google Antigravity (https://antigravity.google/docs/skills).
+Chi tiết hướng dẫn điều phối và nguyên tắc vận hành: xem tại `.agents/AGENTS.md` và danh mục tại `.agents/skills/INSTALLED_SKILLS.md`.
+- **TalentScout ATS Core:** `talentscout-resume-parsing`, `talentscout-skill-taxonomy`, `talentscout-candidate-matching`, `talentscout-llm-screening`, `talentscout-ats-workflows`.
+- **Bóc tách CV & Tài liệu:** `pdf`, `docx`, `xlsx`, `resume-tailoring`.
+- **Backend, Database & Testing:** `fastapi-pro`, `postgres-best-practices`, `docker-compose`, `pytest-skill`.
+- **Frontend ATS Studio:** `frontend-design`, `react-best-practices`, `nextjs-best-practices`.
+- **An toàn, Bảo mật & Audit:** `ai-agent-security`, `awesome-code-review`, `awesome-security-audit`, `awesome-privacy-audit`, `awesome-logging-standards`.
+- **Đạo đức AI & Cân chỉnh lý luận (AI Alignment):** `bias-detection-design`, `consent-and-agency`, `escalation-design`, `guardrail-design`, `harm-anticipation`, `transparency-patterns`, `trust-calibration`, `value-specification`.
+- **Điều phối Đa Agent (Agent Orchestration):** `agent-role-design`, `failure-recovery`, `handoff-protocols`, `human-in-the-loop`, `observability-design`, `state-management`, `task-decomposition`.
+- **Kiến trúc Prompt (Prompt Architecture):** `chain-of-thought-design`, `constraint-specification`, `context-engineering`, `few-shot-patterns`, `prompt-versioning`, `system-prompt-structure`, `template-design`.
+- **Tương tác & Định hình hành vi (UX & Persona):** `context-window-design`, `conversation-patterns`, `feedback-loops`, `frustration-detection`, `generative-ui`, `mixed-initiative-flow`, `multimodal-orchestration`, `progressive-disclosure`, `behavioral-consistency`, `cultural-adaptation`, `domain-voice`, `emotional-design`, `error-personality`, `persona-architecture`, `tone-calibration`.
+- **Đánh giá & Đo lường chất lượng (Evaluation):** `llm-evaluation`, `comparative-evaluation`, `failure-taxonomy`, `heuristic-evaluation-ai`, `longitudinal-measurement`, `output-quality-rubrics`, `task-success-metrics`, `user-satisfaction-signals`.
