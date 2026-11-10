@@ -8,93 +8,151 @@ import {
   Briefcase,
   Users,
   Kanban,
-  FileText,
-  Activity,
-  Layers,
-  TrendingUp,
+  Calendar,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
 
-  const links = [
-    { label: "Dashboard", href: "/", icon: LayoutDashboard },
-    { label: "Job Postings", href: "/jobs", icon: Briefcase },
-    { label: "Candidate Pool", href: "/candidates", icon: Users },
-    { label: "ATS Kanban Board", href: "/kanban", icon: Kanban },
-    { label: "Action Queue", href: "/pipeline/queue", icon: Layers },
-    { label: "Recruitment Analytics", href: "/analytics", icon: TrendingUp },
+  const mainNav = [
+    { label: "Tổng quan", href: "/", icon: LayoutDashboard },
+    { label: "Tin tuyển dụng", href: "/jobs", icon: Briefcase, count: 8 },
+    { label: "Hồ sơ ứng viên", href: "/candidates", icon: Users, count: 42 },
+    { label: "Quy trình Kanban", href: "/kanban", icon: Kanban },
+    { label: "Lịch phỏng vấn", href: "/interviews", icon: Calendar, count: 5 },
+    { label: "Báo cáo & Phân tích", href: "/analytics", icon: BarChart3 },
+    { label: "Cấu hình hệ thống", href: "/settings", icon: Settings },
   ];
 
   return (
-    <aside
-      className="glass-panel"
-      style={{
-        width: "240px",
-        margin: "16px 0 16px 24px",
-        padding: "24px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ padding: "0 12px 16px 12px", borderBottom: "1px solid var(--border-glass)" }}>
-        <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-dim)", fontWeight: 600 }}>
-          Recruitment Workspace
-        </span>
+    <aside className="w-60 h-screen bg-white border-r border-[#E5E5E0] flex flex-col shrink-0 fixed top-0 left-0 z-30 select-none">
+      {/* Brand Header */}
+      <div className="h-14 px-5 border-b border-[#E5E5E0] flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 text-decoration-none">
+          <div className="w-8 h-8 rounded-lg bg-[#0F766E] flex items-center justify-center text-white font-bold text-base shadow-sm">
+            TS
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-sm text-[#1A1A1A] tracking-tight">
+                TalentScout
+              </span>
+              <span className="text-[10px] font-medium bg-[#F0FDFA] text-[#0F766E] px-1.5 py-0.5 rounded border border-[#CCFBF1]">
+                HR
+              </span>
+            </div>
+            <p className="text-[11px] text-[#6B6B66] -mt-0.5 font-normal">
+              ATS Studio
+            </p>
+          </div>
+        </Link>
       </div>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "12px" }}>
-        {links.map((link) => {
-          const Icon = link.icon;
-          const isActive = pathname === link.href;
+      {/* Main Navigation */}
+      <div className="flex-1 py-4 px-3 overflow-y-auto">
+        <div className="px-2 mb-2">
+          <span className="text-[11px] font-semibold text-[#9E9E98] uppercase tracking-wider">
+            Menu Quản Trị
+          </span>
+        </div>
 
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "10px 14px",
-                borderRadius: "10px",
-                textDecoration: "none",
-                fontSize: "0.9rem",
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#ffffff" : "var(--text-muted)",
-                background: isActive ? "linear-gradient(90deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15))" : "transparent",
-                border: isActive ? "1px solid rgba(99, 102, 241, 0.4)" : "1px solid transparent",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <Icon size={18} color={isActive ? "#818cf8" : "#94a3b8"} />
-              <span>{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="flex flex-col gap-1">
+          {mainNav.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
 
-      <div style={{ marginTop: "auto", paddingTop: "20px", borderTop: "1px solid var(--border-glass)", display: "flex", flexDirection: "column", gap: "10px" }}>
-        <a
-          href="http://127.0.0.1:8000/api/v1/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "8px 12px",
-            borderRadius: "8px",
-            color: "var(--text-dim)",
-            textDecoration: "none",
-            fontSize: "0.8rem",
-          }}
-        >
-          <FileText size={16} />
-          <span>FastAPI Swagger Docs</span>
-        </a>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isActive
+                    ? "bg-[#F0FDFA] text-[#0F766E] font-medium border-l-[3px] border-[#0F766E] pl-2.5"
+                    : "text-[#6B6B66] hover:bg-[#F7F7F5] hover:text-[#1A1A1A]"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon
+                    size={17}
+                    className={`shrink-0 ${
+                      isActive ? "text-[#0F766E]" : "text-[#9E9E98]"
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.count !== undefined && (
+                  <span
+                    className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
+                      isActive
+                        ? "bg-[#CCFBF1] text-[#0F766E]"
+                        : "bg-[#F7F7F5] text-[#9E9E98]"
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* AI & Compliance Box */}
+        <div className="mt-6 mx-1 p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E5E0]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F766E] mb-1">
+            <Sparkles size={14} />
+            <span>AI Screening v2.0</span>
+          </div>
+          <p className="text-[11px] text-[#6B6B66] leading-relaxed mb-2">
+            Đang hoạt động với cơ chế kiểm định EEOC 4/5th Rule & XAI Synthesis.
+          </p>
+          <div className="flex items-center gap-1 text-[11px] font-medium text-[#15803D]">
+            <ShieldCheck size={13} />
+            <span>Zero-PII Mode Sẵn Sàng</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer / User Profile */}
+      <div className="p-3 border-t border-[#E5E5E0] bg-[#FAFAF8]">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E5E5E0]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-[#E5E5E0] text-[#1A1A1A] font-semibold text-xs flex items-center justify-center shrink-0">
+              LT
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[#1A1A1A] truncate">
+                Lê Minh Tuấn
+              </p>
+              <p className="text-[11px] text-[#6B6B66] truncate">
+                Lead Recruiter
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
+            Admin
+          </span>
+        </div>
+
+        <div className="mt-2 px-1 flex items-center justify-between text-[11px] text-[#9E9E98]">
+          <span>TalentScout Core</span>
+          <a
+            href="http://127.0.0.1:8000/api/v1/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[#6B6B66] hover:text-[#0F766E]"
+          >
+            <span>API Docs</span>
+            <ExternalLink size={10} />
+          </a>
+        </div>
       </div>
     </aside>
   );

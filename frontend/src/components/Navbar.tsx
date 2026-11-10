@@ -1,56 +1,101 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { Shield, Sparkles, UserCheck } from "lucide-react";
+import {
+  Search,
+  Bell,
+  Shield,
+  ShieldAlert,
+  Plus,
+  Upload,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "./ui/Button";
 
 export function Navbar() {
+  const [blindMode, setBlindMode] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(3);
+
   return (
-    <header className="glass-panel" style={{ margin: "16px 24px", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <div style={{
-          width: "38px",
-          height: "38px",
-          borderRadius: "10px",
-          background: "linear-gradient(135deg, #6366f1, #a855f7)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 0 15px rgba(99, 102, 241, 0.5)"
-        }}>
-          <Sparkles size={20} color="#ffffff" />
-        </div>
-        <div>
-          <span style={{ fontSize: "1.2rem", fontWeight: 700, letterSpacing: "-0.02em", color: "#ffffff" }}>
-            Talent<span style={{ color: "#a855f7" }}>Scout</span>
-          </span>
-          <span style={{ marginLeft: "8px", fontSize: "0.65rem", padding: "2px 8px", background: "rgba(99, 102, 241, 0.2)", borderRadius: "6px", color: "#818cf8", border: "1px solid rgba(99, 102, 241, 0.3)" }}>
-            AI ATS v1.0
-          </span>
+    <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-[#E5E5E0] sticky top-0 z-20 px-6 flex items-center justify-between">
+      {/* Left: Global Search Bar */}
+      <div className="flex items-center gap-3 w-96">
+        <div className="relative w-full">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9E9E98]"
+          />
+          <input
+            type="text"
+            placeholder="Tìm tin tuyển dụng, ứng viên, ID (#TSC-XXXX)..."
+            className="w-full h-9 pl-9 pr-12 text-xs bg-[#F7F7F5] border border-[#E5E5E0] rounded-lg text-[#1A1A1A] placeholder-[#9E9E98] focus:outline-none focus:ring-1 focus:ring-[#0F766E] focus:border-[#0F766E] focus:bg-white transition-colors"
+          />
+          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-[#9E9E98] bg-white border border-[#E5E5E0] rounded shadow-xs">
+            ⌘K
+          </kbd>
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-        {/* Compliance Indicators */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", color: "#10b981", background: "rgba(16, 185, 129, 0.1)", padding: "5px 12px", borderRadius: "999px", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
-          <Shield size={14} />
-          <span>EEOC 4/5th Compliant</span>
-        </div>
+      {/* Right: Actions, Compliance & Profile */}
+      <div className="flex items-center gap-3">
+        {/* Blind Screening Toggle */}
+        <button
+          onClick={() => setBlindMode(!blindMode)}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            blindMode
+              ? "bg-[#F0FDFA] border-[#CCFBF1] text-[#0F766E]"
+              : "bg-[#F7F7F5] border-[#E5E5E0] text-[#6B6B66] hover:bg-[#EFEFEA]"
+          }`}
+          title="Bật/Tắt chế độ ẩn danh PII khi chuyển tiếp cho Ban Phỏng vấn"
+        >
+          {blindMode ? (
+            <>
+              <Shield size={14} className="text-[#0F766E]" />
+              <span>Blind Mode: BẬT (#TSC)</span>
+            </>
+          ) : (
+            <>
+              <ShieldAlert size={14} className="text-[#B45309]" />
+              <span>Blind Mode: TẮT</span>
+            </>
+          )}
+        </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", color: "#a855f7", background: "rgba(168, 85, 247, 0.1)", padding: "5px 12px", borderRadius: "999px", border: "1px solid rgba(168, 85, 247, 0.2)" }}>
-          <UserCheck size={14} />
-          <span>Blind Mode: Active</span>
-        </div>
+        {/* Notifications */}
+        <button
+          className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E0] bg-white text-[#6B6B66] hover:bg-[#F7F7F5] hover:text-[#1A1A1A] transition-colors"
+          title="Thông báo mới"
+        >
+          <Bell size={16} />
+          {unreadCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#B91C1C]" />
+          )}
+        </button>
 
-        {/* User Profile */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingLeft: "12px", borderLeft: "1px solid var(--border-glass)" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#23304d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", fontWeight: 600, color: "#f8fafc" }}>
-            AD
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#f8fafc" }}>Admin Recruiter</span>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>admin@talentscout.ai</span>
-          </div>
+        <div className="h-5 w-px bg-[#E5E5E0] mx-1" />
+
+        {/* Primary Quick Actions */}
+        <div className="flex items-center gap-2">
+          <Link href="/candidates/upload">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Upload size={14} />}
+            >
+              Tải lên CV
+            </Button>
+          </Link>
+
+          <Link href="/jobs/create">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus size={14} />}
+            >
+              Tạo Tin Tuyển Dụng
+            </Button>
+          </Link>
         </div>
       </div>
     </header>

@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TalentScout — AI ATS Platform",
-  description: "Intelligent Applicant Tracking System with XAI, Hybrid Match & Blind Screening",
+  title: "TalentScout — HR ATS Studio",
+  description: "Hệ thống Quản lý Tuyển dụng & Sàng lọc Hồ sơ Ứng viên Thông minh bằng AI",
 };
 
 export default function RootLayout({
@@ -14,17 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-          <Navbar />
-          <div style={{ display: "flex", flex: 1, gap: "16px", paddingRight: "24px" }}>
-            <Sidebar />
-            <main style={{ flex: 1, minWidth: 0, paddingBottom: "32px" }}>
-              {children}
-            </main>
-          </div>
-        </div>
+    <html lang="vi">
+      <body className="bg-[#FAFAF8] text-[#1A1A1A] antialiased">
+        {children}
       </body>
     </html>
   );
