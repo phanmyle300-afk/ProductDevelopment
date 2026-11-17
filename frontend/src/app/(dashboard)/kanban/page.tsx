@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Kanban as KanbanIcon,
@@ -37,77 +37,36 @@ export default function KanbanPage() {
   const [isBlindMode, setIsBlindMode] = useState(true);
   const [selectedJob, setSelectedJob] = useState("all");
   const [interviewerOnly, setInterviewerOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [candidates, setCandidates] = useState<KanbanCandidate[]>([]);
 
-  const [candidates, setCandidates] = useState<KanbanCandidate[]>([
-    {
-      id: "cand-1",
-      name: "Nguyễn Văn An",
-      blindCode: "Candidate #TSC-4A8F",
-      jobTitle: "Senior Fullstack AI Engineer",
-      score: 92,
-      stage: "screened",
-      mandatoryMet: true,
-      interviewer: "Lê Minh Tuấn",
-    },
-    {
-      id: "cand-2",
-      name: "Trần Thị Bích",
-      blindCode: "Candidate #TSC-7C21",
-      jobTitle: "Lead Backend Developer",
-      score: 86,
-      stage: "interview",
-      mandatoryMet: true,
-      interviewer: "Lê Minh Tuấn",
-    },
-    {
-      id: "cand-3",
-      name: "Phạm Quốc Dũng",
-      blindCode: "Candidate #TSC-9E4B",
-      jobTitle: "Senior Fullstack AI Engineer",
-      score: 78,
-      stage: "applied",
-      mandatoryMet: true,
-    },
-    {
-      id: "cand-4",
-      name: "Hoàng Minh Đức",
-      blindCode: "Candidate #TSC-192B",
-      jobTitle: "Senior Fullstack AI Engineer",
-      score: 54,
-      stage: "applied",
-      mandatoryMet: false,
-      missingSkills: ["Docker"],
-    },
-    {
-      id: "cand-5",
-      name: "Lê Thị Thanh Mai",
-      blindCode: "Candidate #TSC-33A1",
-      jobTitle: "AI Research Scientist",
-      score: 95,
-      stage: "offer",
-      mandatoryMet: true,
-      interviewer: "Trần Trọng Hưng",
-    },
-    {
-      id: "cand-6",
-      name: "Vũ Hải Nam",
-      blindCode: "Candidate #TSC-880F",
-      jobTitle: "Frontend Engineer",
-      score: 84,
-      stage: "review",
-      mandatoryMet: true,
-      interviewer: "Lê Minh Tuấn",
-    },
-    {
-      id: "cand-7",
-      name: "Đặng Hoàng Long",
-      blindCode: "Candidate #TSC-551C",
-      jobTitle: "DevOps & Cloud Engineer",
-      score: 88,
-      stage: "hired",
-      mandatoryMet: true,
-    },
-  ]);
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/applications");
+        if (res.ok) {
+          const data = await res.json();
+          const items: KanbanCandidate[] = (data.applications || []).map((app: any) => ({
+            id: app.id,
+            name: app.candidates?.full_name || "Ứng viên",
+            blindCode: `Candidate #TSC-${app.id.slice(0, 4).toUpperCase()}`,
+            jobTitle: app.jobs?.title || "Vị trí tuyển dụng",
+            score: 0,
+            stage: app.current_stage || "applied",
+            mandatoryMet: true,
+            interviewer: undefined,
+          }));
+          setCandidates(items);
+        }
+      } catch (err) {
+        console.error("Lỗi nạp bảng Kanban:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const stages = [
     { id: "applied", label: "1. Ứng Tuyển Mới", color: "border-t-[#9E9E98]" },
@@ -125,7 +84,7 @@ export default function KanbanPage() {
   };
 
   const filteredCandidates = candidates.filter((c) => {
-    if (interviewerOnly && c.interviewer !== "Lê Minh Tuấn") return false;
+    if (interviewerOnly && !c.interviewer) return false;
     return true;
   });
 
@@ -168,6 +127,12 @@ export default function KanbanPage() {
             <UserCheck size={14} />
             <span>Chỉ hồ sơ tôi phụ trách</span>
           </button>
+
+          <Link href="/candidates/upload">
+            <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+              Thêm ứng viên
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -206,22 +171,28 @@ export default function KanbanPage() {
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <Link
-                            href={`/candidates/${cand.id}`}
+                            href={`/candidates`}
                             className="font-semibold text-sm text-[#1A1A1A] hover:text-[#0F766E] truncate block"
                           >
                             {displayName}
                           </Link>
-                          <span
-                            className={`font-bold text-xs shrink-0 ${
-                              cand.score >= 80
-                                ? "text-[#15803D]"
-                                : cand.score >= 65
-                                ? "text-[#B45309]"
-                                : "text-[#B91C1C]"
-                            }`}
-                          >
-                            {cand.score}%
-                          </span>
+                          {cand.score > 0 ? (
+                            <span
+                              className={`font-bold text-xs shrink-0 ${
+                                cand.score >= 80
+                                  ? "text-[#15803D]"
+                                  : cand.score >= 65
+                                  ? "text-[#B45309]"
+                                  : "text-[#B91C1C]"
+                              }`}
+                            >
+                              {cand.score}%
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#9E9E98] bg-[#F7F7F5] px-1.5 py-0.5 rounded">
+                              Chưa chấm
+                            </span>
+                          )}
                         </div>
 
                         <p className="text-[11px] text-[#6B6B66] truncate mb-2">
@@ -243,8 +214,8 @@ export default function KanbanPage() {
 
                         {/* Quick Move Next Action */}
                         <div className="flex items-center justify-between pt-2 border-t border-[#EFEFEA] text-[11px]">
-                          <Link href={`/candidates/${cand.id}`} className="text-[#0F766E] font-medium hover:underline">
-                            Chi tiết XAI
+                          <Link href={`/candidates`} className="text-[#0F766E] font-medium hover:underline">
+                            Xem hồ sơ
                           </Link>
 
                           {st.id !== "hired" && (

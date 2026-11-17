@@ -15,16 +15,43 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
+import { getUserSession, UserSession } from "@/lib/auth-storage";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [session, setSession] = React.useState<UserSession | null>(null);
+  const [counts, setCounts] = React.useState<{
+    jobs: number;
+    candidates: number;
+    interviews: number;
+  }>({ jobs: 0, candidates: 0, interviews: 0 });
+
+  React.useEffect(() => {
+    setSession(getUserSession());
+
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch("/api/counts");
+        if (res.ok) {
+          const data = await res.json();
+          setCounts({
+            jobs: data.jobs || 0,
+            candidates: data.candidates || 0,
+            interviews: data.interviews || 0,
+          });
+        }
+      } catch {}
+    };
+
+    fetchCounts();
+  }, [pathname]);
 
   const mainNav = [
     { label: "Tổng quan", href: "/", icon: LayoutDashboard },
-    { label: "Tin tuyển dụng", href: "/jobs", icon: Briefcase, count: 8 },
-    { label: "Hồ sơ ứng viên", href: "/candidates", icon: Users, count: 42 },
+    { label: "Tin tuyển dụng", href: "/jobs", icon: Briefcase, count: counts.jobs > 0 ? counts.jobs : undefined },
+    { label: "Hồ sơ ứng viên", href: "/candidates", icon: Users, count: counts.candidates > 0 ? counts.candidates : undefined },
     { label: "Quy trình Kanban", href: "/kanban", icon: Kanban },
-    { label: "Lịch phỏng vấn", href: "/interviews", icon: Calendar, count: 5 },
+    { label: "Lịch phỏng vấn", href: "/interviews", icon: Calendar, count: counts.interviews > 0 ? counts.interviews : undefined },
     { label: "Báo cáo & Phân tích", href: "/analytics", icon: BarChart3 },
     { label: "Cấu hình hệ thống", href: "/settings", icon: Settings },
   ];
@@ -124,20 +151,28 @@ export function Sidebar() {
       <div className="p-3 border-t border-[#E5E5E0] bg-[#FAFAF8]">
         <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E5E5E0]">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#E5E5E0] text-[#1A1A1A] font-semibold text-xs flex items-center justify-center shrink-0">
-              LT
+            <div className="w-8 h-8 rounded-full bg-[#0F766E]/10 text-[#0F766E] font-semibold text-xs flex items-center justify-center shrink-0">
+              {session?.fullName
+                ? session.fullName
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(-2)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase()
+                : "HR"}
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-[#1A1A1A] truncate">
-                Lê Minh Tuấn
+                {session?.fullName || "Nhà tuyển dụng"}
               </p>
               <p className="text-[11px] text-[#6B6B66] truncate">
-                Lead Recruiter
+                {session?.jobTitle || (session?.companyName ? session.companyName : "HR Recruiter")}
               </p>
             </div>
           </div>
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
-            Admin
+            {session?.role === "admin" ? "Admin" : "Recruiter"}
           </span>
         </div>
 

@@ -51,86 +51,44 @@ export default function JobsPage() {
   const [isAnalyzingJD, setIsAnalyzingJD] = useState(false);
   const [parsedSkills, setParsedSkills] = useState<string[]>([]);
 
-  const [jobsList, setJobsList] = useState<JobItem[]>([
-    {
-      id: "job-1",
-      title: "Senior Fullstack AI Engineer",
-      department: "Engineering",
-      location: "Hà Nội (Hybrid)",
-      type: "Toàn thời gian",
-      salary: "35M - 60M VND",
-      status: "open",
-      applicants: 38,
-      screened: 32,
-      createdAt: "02/11/2026",
-      mandatorySkills: ["Python", "FastAPI", "React", "Docker"],
-    },
-    {
-      id: "job-2",
-      title: "Lead Backend Developer (Python/FastAPI)",
-      department: "Engineering",
-      location: "TP. Hồ Chí Minh (Onsite)",
-      type: "Toàn thời gian",
-      salary: "45M - 75M VND",
-      status: "open",
-      applicants: 29,
-      screened: 26,
-      createdAt: "28/10/2026",
-      mandatorySkills: ["FastAPI", "PostgreSQL", "Redis", "Celery"],
-    },
-    {
-      id: "job-3",
-      title: "Frontend Engineer (React/TypeScript)",
-      department: "Product Design",
-      location: "Hà Nội / Remote",
-      type: "Toàn thời gian",
-      salary: "25M - 40M VND",
-      status: "open",
-      applicants: 44,
-      screened: 40,
-      createdAt: "25/10/2026",
-      mandatorySkills: ["React", "TypeScript", "Tailwind CSS"],
-    },
-    {
-      id: "job-4",
-      title: "AI Research Scientist (NLP/RAG)",
-      department: "AI Research",
-      location: "Hà Nội (Hybrid)",
-      type: "Toàn thời gian",
-      salary: "50M - 90M VND",
-      status: "open",
-      applicants: 15,
-      screened: 14,
-      createdAt: "20/10/2026",
-      mandatorySkills: ["PyTorch", "Transformers", "pgvector", "LLM"],
-    },
-    {
-      id: "job-5",
-      title: "HR & Recruitment Specialist",
-      department: "Human Resources",
-      location: "TP. Hồ Chí Minh",
-      type: "Toàn thời gian",
-      salary: "18M - 28M VND",
-      status: "paused",
-      applicants: 22,
-      screened: 18,
-      createdAt: "15/10/2026",
-      mandatorySkills: ["Tech Recruiting", "ATS", "Interviewing"],
-    },
-    {
-      id: "job-6",
-      title: "DevOps & Cloud Engineer (AWS/K8s)",
-      department: "Infrastructure",
-      location: "Remote",
-      type: "Hợp đồng",
-      salary: "35M - 55M VND",
-      status: "closed",
-      applicants: 19,
-      screened: 19,
-      createdAt: "01/10/2026",
-      mandatorySkills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
-    },
-  ]);
+  const [jobsList, setJobsList] = useState<JobItem[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+  const [jobsError, setJobsError] = useState<string | null>(null);
+
+  const fetchJobs = async () => {
+    setIsLoadingJobs(true);
+    setJobsError(null);
+    try {
+      const res = await fetch("/api/jobs");
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Không thể tải danh sách tin tuyển dụng.");
+      }
+      const loaded: JobItem[] = (json.jobs || []).map((j: any) => ({
+        id: j.id,
+        title: j.title,
+        department: j.department || "Engineering",
+        location: j.location || "Hà Nội (Hybrid)",
+        type: "Toàn thời gian",
+        salary: "Thỏa thuận",
+        status: j.status || "open",
+        applicants: 0,
+        screened: 0,
+        createdAt: j.created_at ? new Date(j.created_at).toLocaleDateString("vi-VN") : "Hôm nay",
+        mandatorySkills: ["Python", "FastAPI"],
+      }));
+      setJobsList(loaded);
+    } catch (err: any) {
+      setJobsError(err.message || "Lỗi tải tin tuyển dụng.");
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchJobs();
+  }, []);
 
   // AI JD Analysis simulation
   const handleAnalyzeJD = () => {
@@ -145,27 +103,39 @@ export default function JobsPage() {
     }, 700);
   };
 
-  const handleCreateJob = (e: React.FormEvent) => {
+  const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle) return;
-    const newJob: JobItem = {
-      id: `job-${jobsList.length + 1}`,
-      title: formTitle,
-      department: formDept,
-      location: formLocation,
-      type: "Toàn thời gian",
-      salary: "Thỏa thuận",
-      status: "open",
-      applicants: 0,
-      screened: 0,
-      createdAt: "Hôm nay",
-      mandatorySkills: parsedSkills.length ? parsedSkills : ["Python", "FastAPI"],
-    };
-    setJobsList([newJob, ...jobsList]);
-    setShowCreateModal(false);
-    setFormTitle("");
-    setFormRawJD("");
-    setParsedSkills([]);
+    if (!formTitle.trim()) return;
+    setIsSubmittingJob(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formTitle.trim(),
+          department: formDept,
+          location: formLocation,
+          status: "open",
+          description: formRawJD.trim() || `Tuyển dụng vị trí ${formTitle.trim()}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Không thể lưu tin tuyển dụng.");
+        return;
+      }
+
+      setShowCreateModal(false);
+      setFormTitle("");
+      setFormRawJD("");
+      setParsedSkills([]);
+      await fetchJobs();
+    } catch (err: any) {
+      alert(err.message || "Đã xảy ra lỗi khi tạo tin tuyển dụng.");
+    } finally {
+      setIsSubmittingJob(false);
+    }
   };
 
   // Filter logic
