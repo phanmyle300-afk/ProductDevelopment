@@ -31,12 +31,48 @@ export default function CandidateProfilePage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [existingResume, setExistingResume] = useState<any>(null);
+  const [isParsingResume, setIsParsingResume] = useState(false);
+  const [resumeParseError, setResumeParseError] = useState<string | null>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleParseMyResume = async () => {
+    if (!existingResume?.id) return;
+    setIsParsingResume(true);
+    setResumeParseError(null);
+    setExistingResume({ ...existingResume, parse_status: "parsing" });
+
+    try {
+      const res = await fetch(`/api/resumes/${existingResume.id}/parse`, {
+        method: "POST",
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        setResumeParseError(result.error || "Bóc tách CV thất bại");
+        setExistingResume({ ...existingResume, parse_status: "failed" });
+        return;
+      }
+      setExistingResume({
+        ...existingResume,
+        parse_status: "parsed",
+        raw_text: result.raw_text,
+        parsed_data: result.parsed_data,
+      });
+      if (result.parsed_data?.skills && result.parsed_data.skills.length > 0) {
+        const extractedNames = result.parsed_data.skills.map((s: any) => s.name);
+        setSkills((prev) => Array.from(new Set([...prev, ...extractedNames])));
+      }
+    } catch (err: any) {
+      setResumeParseError(err.message || "Lỗi kết nối khi bóc tách");
+      setExistingResume({ ...existingResume, parse_status: "failed" });
+    } finally {
+      setIsParsingResume(false);
+    }
+  };
 
   useEffect(() => {
     const session = getUserSession();
@@ -212,29 +248,87 @@ export default function CandidateProfilePage() {
           </CardDescription>
 
           {existingResume ? (
-            <div className="p-3.5 bg-[#F0FDFA] border border-[#CCFBF1] rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white border border-[#CCFBF1] text-[#0F766E] flex items-center justify-center">
-                  <FileText size={18} />
+            <div className="space-y-2">
+              <div className="p-3.5 bg-[#F0FDFA] border border-[#CCFBF1] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-[#CCFBF1] text-[#0F766E] flex items-center justify-center shrink-0">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs text-[#1A1A1A] block">
+                        {existingResume.file_name}
+                      </span>
+                      {existingResume.parse_status === "parsed" && (
+                        <Badge variant="success" size="sm">Đã bóc tách</Badge>
+                      )}
+                      {existingResume.parse_status === "parsing" && (
+                        <Badge variant="accent" size="sm" className="animate-pulse">Đang bóc tách...</Badge>
+                      )}
+                      {existingResume.parse_status === "uploaded" && (
+                        <Badge variant="neutral" size="sm">Chưa xử lý</Badge>
+                      )}
+                      {existingResume.parse_status === "failed" && (
+                        <Badge variant="danger" size="sm">Lỗi bóc tách</Badge>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-[#6B6B66]">
+                      {(existingResume.file_size / (1024 * 1024)).toFixed(1)} MB • Đã lưu trữ an toàn
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold text-xs text-[#1A1A1A] block">
-                    {existingResume.file_name}
-                  </span>
-                  <span className="text-[11px] text-[#6B6B66]">
-                    {(existingResume.file_size / (1024 * 1024)).toFixed(1)} MB • Đã lưu trữ an toàn
-                  </span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {existingResume.parse_status !== "parsed" && existingResume.parse_status !== "parsing" && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      loading={isParsingResume}
+                      onClick={handleParseMyResume}
+                    >
+                      Bóc Tách CV
+                    </Button>
+                  )}
+                  {existingResume.parse_status === "parsed" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      loading={isParsingResume}
+                      onClick={handleParseMyResume}
+                    >
+                      Bóc Tách Lại
+                    </Button>
+                  )}
+                  {existingResume.parse_status === "failed" && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      loading={isParsingResume}
+                      onClick={handleParseMyResume}
+                    >
+                      Thử Lại
+                    </Button>
+                  )}
+                  <label className="text-xs font-semibold text-[#0F766E] hover:underline cursor-pointer px-2 py-1">
+                    <span>Thay tệp mới</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
-              <label className="text-xs font-semibold text-[#0F766E] hover:underline cursor-pointer">
-                <span>Thay tệp mới</span>
-                <input
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
+
+              {resumeParseError && (
+                <div className="p-2.5 rounded-lg bg-[#FEF2F2] border border-[#FEE2E2] text-xs text-[#B91C1C]">
+                  {resumeParseError}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-6 border-2 border-dashed border-[#E5E5E0] rounded-xl text-center space-y-2 bg-[#FAFAF8]">

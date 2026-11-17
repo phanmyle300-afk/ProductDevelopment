@@ -57,23 +57,21 @@ export default function InterviewsPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch("/api/applications");
+        const res = await fetch("/api/interviews");
         if (res.ok) {
           const data = await res.json();
-          const items: InterviewItem[] = (data.applications || [])
-            .filter((app: any) => app.current_stage === "interview")
-            .map((app: any) => ({
-              id: app.id,
-              candidateName: app.candidates?.full_name || "Ứng viên",
-              blindCode: `Candidate #TSC-${app.id.slice(0, 4).toUpperCase()}`,
-              jobTitle: app.jobs?.title || "Vị trí tuyển dụng",
-              dateTime: "Đang xếp lịch",
-              type: "Technical Round 1",
-              interviewers: ["Ban Kỹ Thuật"],
-              status: "scheduled",
-              meetingLink: "",
-              feedbackSubmitted: false,
-            }));
+          const items: InterviewItem[] = (data.interviews || []).map((item: any) => ({
+            id: item.id,
+            candidateName: item.candidates?.full_name || "Ứng viên",
+            blindCode: `Candidate #TSC-${item.id.slice(0, 4).toUpperCase()}`,
+            jobTitle: item.jobs?.title || "Vị trí tuyển dụng",
+            dateTime: item.scheduled_at ? new Date(item.scheduled_at).toLocaleString("vi-VN") : "Đang xếp lịch",
+            type: "Technical Round 1",
+            interviewers: item.interviewers || (item.interviewer_name ? [item.interviewer_name] : ["Ban Kỹ Thuật"]),
+            status: item.status || "scheduled",
+            meetingLink: item.meeting_link || "",
+            feedbackSubmitted: !!item.feedback,
+          }));
           setInterviews(items);
         }
       } catch (err) {

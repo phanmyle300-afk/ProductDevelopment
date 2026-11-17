@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const email = formData.get("email") as string | null;
     const phone = formData.get("phone") as string | null;
     const jobId = formData.get("jobId") as string | null;
-    const file = formData.get("file") as File | null;
+    const file = (formData.get("file") || formData.get("resume")) as File | null;
 
     // 1. Validation input fields
     if (!fullName || !fullName.trim()) {
@@ -215,6 +215,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Thêm ứng viên và tải CV thành công",
+      application_id: applicationId,
+      candidate_id: candidateId,
       data: {
         candidateId,
         applicationId,

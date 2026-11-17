@@ -50,9 +50,9 @@ export default function ScreeningResultsPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const [jobsRes, appsRes] = await Promise.all([
+        const [jobsRes, scrRes] = await Promise.all([
           fetch("/api/jobs"),
-          fetch("/api/applications"),
+          fetch(`/api/screening${selectedJob !== "all" ? `?jobId=${selectedJob}` : ""}`),
         ]);
 
         if (jobsRes.ok) {
@@ -60,13 +60,22 @@ export default function ScreeningResultsPage() {
           setJobs(jData.jobs || []);
         }
 
-        if (appsRes.ok) {
-          const aData = await appsRes.json();
-          // Filter applications that have real scores (none yet, starts empty)
-          const screenedApps = (aData.applications || []).filter(
-            (app: any) => app.current_stage === "screened" && app.score
-          );
-          setCandidates(screenedApps);
+        if (scrRes.ok) {
+          const sData = await scrRes.json();
+          const items: RankedCandidate[] = (sData.results || []).map((r: any, idx: number) => ({
+            rank: idx + 1,
+            id: r.id,
+            blindCode: `Candidate #TSC-${r.id.slice(0, 4).toUpperCase()}`,
+            name: r.candidates?.full_name || "Ứng viên",
+            score: r.score || r.overall_score || 0,
+            recommendation: r.recommendation || "review",
+            skillsMatched: r.strengths ? (Array.isArray(r.strengths) ? r.strengths : [r.strengths]) : [],
+            missingSkills: r.missing_skills ? (Array.isArray(r.missing_skills) ? r.missing_skills : [r.missing_skills]) : [],
+            hardFilterPass: true,
+            expYears: r.experience_score || 0,
+            jobTitle: r.jobs?.title || "Vị trí tuyển dụng",
+          }));
+          setCandidates(items);
         }
       } catch (err) {
         console.error("Lỗi nạp dữ liệu sàng lọc:", err);
@@ -75,7 +84,7 @@ export default function ScreeningResultsPage() {
       }
     }
     loadData();
-  }, []);
+  }, [selectedJob]);
 
   const filtered = candidates.filter((c) => {
     if (filterRec !== "all" && c.recommendation !== filterRec) return false;

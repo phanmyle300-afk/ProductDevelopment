@@ -47,26 +47,24 @@ export default function OffersPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch("/api/applications");
+        const res = await fetch("/api/offers");
         if (res.ok) {
           const data = await res.json();
-          const items: OfferItem[] = (data.applications || [])
-            .filter((app: any) => app.current_stage === "offer")
-            .map((app: any) => ({
-              id: app.id,
-              candidateName: app.candidates?.full_name || "Ứng viên",
-              blindCode: `Candidate #TSC-${app.id.slice(0, 4).toUpperCase()}`,
-              jobTitle: app.jobs?.title || "Vị trí tuyển dụng",
-              salary: "Thỏa thuận",
-              signOnBonus: "Theo chính sách",
-              startDate: "Theo thỏa thuận",
-              status: "pending_approval",
-              approvers: {
-                hr: true,
-                hiringManager: false,
-                finance: false,
-              },
-            }));
+          const items: OfferItem[] = (data.offers || []).map((item: any) => ({
+            id: item.id,
+            candidateName: item.candidates?.full_name || "Ứng viên",
+            blindCode: `Candidate #TSC-${item.id.slice(0, 4).toUpperCase()}`,
+            jobTitle: item.jobs?.title || "Vị trí tuyển dụng",
+            salary: item.salary || "Thỏa thuận",
+            signOnBonus: item.sign_on_bonus || "Theo chính sách",
+            startDate: item.start_date ? new Date(item.start_date).toLocaleDateString("vi-VN") : "Theo thỏa thuận",
+            status: item.status || "pending_approval",
+            approvers: {
+              hr: true,
+              hiringManager: !!item.approved,
+              finance: !!item.approved,
+            },
+          }));
           setOffers(items);
         }
       } catch (err) {

@@ -14,8 +14,9 @@ import {
   ShieldCheck,
   Sparkles,
   ExternalLink,
+  LogOut,
 } from "lucide-react";
-import { getUserSession, UserSession } from "@/lib/auth-storage";
+import { getUserSession, clearUserSession, UserSession } from "@/lib/auth-storage";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -171,9 +172,21 @@ export function Sidebar() {
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
-            {session?.role === "admin" ? "Admin" : "Recruiter"}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
+              {session?.role === "admin" ? "Admin" : "Recruiter"}
+            </span>
+            <button
+              onClick={() => {
+                clearUserSession();
+                window.location.href = "/login";
+              }}
+              className="p-1 rounded hover:bg-[#FEF2F2] text-[#9E9E98] hover:text-[#B91C1C] transition-colors"
+              title="Đăng xuất"
+            >
+              <LogOut size={13} />
+            </button>
+          </div>
         </div>
 
         <div className="mt-2 px-1 flex items-center justify-between text-[11px] text-[#9E9E98]">

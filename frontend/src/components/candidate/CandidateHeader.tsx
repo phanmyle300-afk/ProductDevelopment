@@ -1,31 +1,55 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Briefcase,
-  FileCheck2,
+  Search,
   Bell,
   User,
   Menu,
   X,
   Sparkles,
-  ArrowRight,
+  ChevronRight,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { getUserSession, clearUserSession, UserSession } from "@/lib/auth-storage";
 
 export function CandidateHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Demo state: candidate is logged in
+  const [session, setSession] = useState<UserSession | null>(null);
+
+  useEffect(() => {
+    setSession(getUserSession());
+  }, [pathname]);
+
+  const handleLogout = () => {
+    clearUserSession();
+    setSession(null);
+    router.push("/careers/auth");
+  };
+
+  const isLoggedIn = !!session;
 
   const navLinks = [
     { label: "Khám Phá Việc Làm", href: "/careers/jobs" },
-    { label: "Đơn Ứng Tuyển Của Tôi", href: "/careers/my-applications", count: 2 },
+    { label: "Đơn Ứng Tuyển Của Tôi", href: "/careers/my-applications" },
     { label: "Hồ Sơ Năng Lực", href: "/careers/profile" },
   ];
+
+  const initials = session?.fullName
+    ? session.fullName
+        .split(" ")
+        .filter(Boolean)
+        .slice(-2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+    : "UV";
 
   return (
     <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-[#E5E5E0] sticky top-0 z-30">
@@ -53,7 +77,7 @@ export function CandidateHeader() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 text-xs font-medium">
           {navLinks.map((link) => {
-            const isActive = pathname.startsWith(link.href);
+            const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
             return (
               <Link
                 key={link.href}
@@ -65,11 +89,6 @@ export function CandidateHeader() {
                 }`}
               >
                 <span>{link.label}</span>
-                {link.count !== undefined && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[#CCFBF1] text-[#0F766E] font-bold">
-                    {link.count}
-                  </span>
-                )}
               </Link>
             );
           })}
@@ -83,26 +102,34 @@ export function CandidateHeader() {
             title="Thông báo tuyển dụng"
           >
             <Bell size={17} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0F766E]" />
           </Link>
 
           <div className="h-5 w-px bg-[#E5E5E0]" />
 
           {isLoggedIn ? (
-            <Link
-              href="/careers/profile"
-              className="flex items-center gap-2 p-1.5 pr-3 rounded-lg border border-[#E5E5E0] hover:border-[#D4D4CE] transition-colors"
-            >
-              <div className="w-7 h-7 rounded-full bg-[#F0FDFA] text-[#0F766E] font-bold text-xs flex items-center justify-center border border-[#CCFBF1]">
-                NA
-              </div>
-              <div className="text-left">
-                <span className="text-xs font-semibold text-[#1A1A1A] block leading-none">
-                  Nguyễn Văn An
-                </span>
-                <span className="text-[10px] text-[#6B6B66]">Ứng viên</span>
-              </div>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/careers/profile"
+                className="flex items-center gap-2 p-1.5 pr-3 rounded-lg border border-[#E5E5E0] hover:border-[#D4D4CE] transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#F0FDFA] text-[#0F766E] font-bold text-xs flex items-center justify-center border border-[#CCFBF1]">
+                  {initials}
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-semibold text-[#1A1A1A] block leading-none">
+                    {session?.fullName || "Ứng viên"}
+                  </span>
+                  <span className="text-[10px] text-[#6B6B66]">Hồ sơ cá nhân</span>
+                </div>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg text-[#6B6B66] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition-colors"
+                title="Đăng xuất"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
           ) : (
             <Link href="/careers/auth">
               <Button variant="primary" size="sm">
@@ -121,37 +148,58 @@ export function CandidateHeader() {
         </button>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-[#E5E5E0] p-4 space-y-3">
-          <nav className="flex flex-col gap-1 text-sm">
+        <div className="md:hidden border-b border-[#E5E5E0] bg-white px-4 pt-2 pb-6 space-y-3 shadow-lg">
+          <div className="space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-[#1A1A1A] hover:bg-[#F7F7F5] flex items-center justify-between"
+                className="block px-3 py-2.5 rounded-lg text-xs font-semibold text-[#1A1A1A] hover:bg-[#F0FDFA] hover:text-[#0F766E]"
               >
-                <span>{link.label}</span>
-                {link.count !== undefined && (
-                  <span className="px-2 py-0.5 rounded-full text-xs bg-[#CCFBF1] text-[#0F766E] font-bold">
-                    {link.count}
-                  </span>
-                )}
+                {link.label}
               </Link>
             ))}
-            <Link
-              href="/careers/notifications"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg text-[#1A1A1A] hover:bg-[#F7F7F5] flex items-center gap-2"
-            >
-              <Bell size={16} />
-              <span>Thông báo (1 mới)</span>
-            </Link>
-          </nav>
+          </div>
+
+          <div className="pt-3 border-t border-[#E5E5E0]">
+            {isLoggedIn ? (
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/careers/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-xs font-semibold text-[#1A1A1A]"
+                >
+                  <div className="w-7 h-7 rounded-full bg-[#F0FDFA] text-[#0F766E] font-bold text-xs flex items-center justify-center border border-[#CCFBF1]">
+                    {initials}
+                  </div>
+                  <span>{session?.fullName || "Ứng viên"}</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="text-xs font-medium text-[#B91C1C] flex items-center gap-1"
+                >
+                  <LogOut size={14} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/careers/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-center w-full py-2 bg-[#0F766E] text-white rounded-lg text-xs font-bold"
+              >
+                Đăng Nhập / Đăng Ký
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </header>
   );
 }
-

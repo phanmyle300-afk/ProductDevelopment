@@ -272,7 +272,12 @@ export default function CandidatesPage() {
                   <tr key={cand.applicationId} className="hover:bg-[#FAFAF8] transition">
                     {/* Candidate Info */}
                     <td className="py-3 px-4">
-                      <div className="font-bold text-[#1A1A1A]">{cand.name}</div>
+                      <Link
+                        href={`/candidates/${cand.candidateId}`}
+                        className="font-bold text-[#1A1A1A] hover:text-[#0F766E] transition-colors"
+                      >
+                        {cand.name}
+                      </Link>
                       <div className="flex items-center gap-2 text-[11px] text-[#6B6B66] mt-0.5">
                         <span className="flex items-center gap-1">
                           <Mail size={11} />
@@ -323,22 +328,28 @@ export default function CandidatesPage() {
                       </span>
                     </td>
 
-                    {/* Actions: View Resume */}
+                    {/* Actions: View Resume & Details */}
                     <td className="py-3 px-4 text-right">
-                      {cand.resumeId ? (
-                        <button
-                          type="button"
-                          onClick={() => handleViewResume(cand.resumeId)}
-                          disabled={viewingResumeId === cand.resumeId}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-[#E5E5E0] hover:bg-[#FAFAF8] text-[#0F766E] text-xs font-semibold transition"
-                          title="Tạo liên kết an toàn để xem CV"
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/candidates/${cand.candidateId}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-[#E5E5E0] hover:bg-[#FAFAF8] text-[#1A1A1A] text-xs font-semibold transition"
                         >
-                          <Eye size={12} />
-                          <span>{viewingResumeId === cand.resumeId ? "Đang mở..." : "Xem CV"}</span>
-                        </button>
-                      ) : (
-                        <span className="text-[#6B6B66] text-[11px]">Không có CV</span>
-                      )}
+                          Chi tiết
+                        </Link>
+                        {cand.resumeId && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewResume(cand.resumeId)}
+                            disabled={viewingResumeId === cand.resumeId}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-[#E5E5E0] hover:bg-[#FAFAF8] text-[#0F766E] text-xs font-semibold transition"
+                            title="Tạo liên kết an toàn để xem CV"
+                          >
+                            <Eye size={12} />
+                            <span>{viewingResumeId === cand.resumeId ? "Đang mở..." : "Xem CV"}</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

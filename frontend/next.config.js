@@ -1,15 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
+  async redirects() {
     return [
       {
-        source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL 
-          ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` 
-          : 'http://127.0.0.1:8000/api/:path*',
+        source: '/candidste/:path*',
+        destination: '/candidate/:path*',
+        permanent: false,
       },
     ];
+  },
+  async rewrites() {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+        },
+      ];
+    }
+    return [];
   },
 };
 

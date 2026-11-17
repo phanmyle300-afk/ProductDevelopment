@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession, canAccessResume } from "@/lib/auth-guard";
 
 export async function GET(
   request: NextRequest,
@@ -11,23 +11,26 @@ export async function GET(
       return NextResponse.json({ error: "Thiếu resumeId" }, { status: 400 });
     }
 
-    const supabase = createClient();
-
-    // 1. Fetch resume record
-    const { data: resume, error: resumeErr } = await supabase
-      .from("resumes")
-      .select("id, file_url, file_name, file_type")
-      .eq("id", resumeId)
-      .single();
-
-    if (resumeErr || !resume) {
+    // 1. Verify server-side session and permissions
+    const { supabase, auth } = await verifyServerSession(request);
+    if (!auth.isAuthenticated) {
       return NextResponse.json(
-        { error: "Không tìm thấy thông tin tệp CV này trong hệ thống." },
-        { status: 404 }
+        { error: "Yêu cầu đăng nhập để truy cập tài liệu hồ sơ CV." },
+        { status: 401 }
       );
     }
 
-    const objectKey = resume.file_url;
+    // 2. Strict IDOR and ownership check
+    const accessCheck = await canAccessResume(supabase, auth, resumeId);
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        { error: accessCheck.reason || "Bạn không có quyền xem tệp CV này." },
+        { status: 403 }
+      );
+    }
+
+    const resume = accessCheck.resume;
+    const objectKey = resume?.file_url;
     if (!objectKey) {
       return NextResponse.json(
         { error: "Đường dẫn tệp CV không tồn tại." },
@@ -35,7 +38,7 @@ export async function GET(
       );
     }
 
-    // 2. Generate a secure, short-lived signed URL (15 minutes = 900 seconds)
+    // 3. Generate a secure, short-lived signed URL (15 minutes = 900 seconds)
     const { data: signedData, error: signErr } = await supabase.storage
       .from("resumes")
       .createSignedUrl(objectKey, 900);
@@ -63,4 +66,3 @@ export async function GET(
     );
   }
 }
-

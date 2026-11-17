@@ -22,6 +22,9 @@ import {
   ChevronRight,
   Inbox,
   Plus,
+  X,
+  Save,
+  Check,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -32,20 +35,28 @@ export default function JobDetailPage() {
   const params = useParams();
   const jobId = (params?.id as string) || "";
 
-  const [activeTab, setActiveTab] = useState<"overview" | "criteria" | "applicants" | "settings">("criteria");
-  const [isRunningScreening, setIsRunningScreening] = useState(false);
-  const [screeningSuccess, setScreeningSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "criteria" | "applicants">("criteria");
   const [jobData, setJobData] = useState<any>(null);
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Real Criteria State
+  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
+  const [preferredSkills, setPreferredSkills] = useState<string[]>([]);
+  const [newRequiredInput, setNewRequiredInput] = useState("");
+  const [newPreferredInput, setNewPreferredInput] = useState("");
+  const [isSavingCriteria, setIsSavingCriteria] = useState(false);
+  const [criteriaSavedMsg, setCriteriaSavedMsg] = useState<string | null>(null);
+
+  // Load Job and Applications
   useEffect(() => {
-    async function loadJob() {
+    async function loadJobAndCriteria() {
       try {
         setLoading(true);
-        const [jobsRes, appsRes] = await Promise.all([
+        const [jobsRes, appsRes, critRes] = await Promise.all([
           fetch("/api/jobs"),
           fetch("/api/applications"),
+          fetch(`/api/jobs/${jobId}/criteria`),
         ]);
 
         if (jobsRes.ok) {
@@ -60,17 +71,18 @@ export default function JobDetailPage() {
           setApplicants(
             jobApps.map((a: any) => ({
               id: a.id,
+              candidateId: a.candidate_id,
               name: a.candidates?.full_name || "Ứng viên",
-              matchScore: 0,
-              skillsScore: 0,
-              expScore: 0,
-              eduScore: 0,
-              semanticScore: 0,
               stage: a.current_stage || "applied",
-              mandatoryMet: true,
               lastActivity: a.created_at ? new Date(a.created_at).toLocaleDateString("vi-VN") : "Gần đây",
             }))
           );
+        }
+
+        if (critRes.ok) {
+          const cData = await critRes.json();
+          setRequiredSkills((cData.required_skills || []).map((s: any) => s.name));
+          setPreferredSkills((cData.preferred_skills || []).map((s: any) => s.name));
         }
       } catch (err) {
         console.error("Lỗi nạp chi tiết tin tuyển dụng:", err);
@@ -79,8 +91,64 @@ export default function JobDetailPage() {
       }
     }
 
-    if (jobId) loadJob();
+    if (jobId) loadJobAndCriteria();
   }, [jobId]);
+
+  // Handle adding required skill
+  const handleAddRequiredSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newRequiredInput.trim();
+    if (clean && !requiredSkills.includes(clean)) {
+      setRequiredSkills([...requiredSkills, clean]);
+      setNewRequiredInput("");
+    }
+  };
+
+  const handleRemoveRequiredSkill = (skill: string) => {
+    setRequiredSkills(requiredSkills.filter((s) => s !== skill));
+  };
+
+  // Handle adding preferred skill
+  const handleAddPreferredSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newPreferredInput.trim();
+    if (clean && !preferredSkills.includes(clean)) {
+      setPreferredSkills([...preferredSkills, clean]);
+      setNewPreferredInput("");
+    }
+  };
+
+  const handleRemovePreferredSkill = (skill: string) => {
+    setPreferredSkills(preferredSkills.filter((s) => s !== skill));
+  };
+
+  // Save criteria to DB
+  const handleSaveCriteria = async () => {
+    setIsSavingCriteria(true);
+    setCriteriaSavedMsg(null);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/criteria`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          required_skills: requiredSkills,
+          preferred_skills: preferredSkills,
+        }),
+      });
+
+      if (res.ok) {
+        setCriteriaSavedMsg("Đã lưu tiêu chí tuyển dụng thành công vào CSDL Supabase.");
+        setTimeout(() => setCriteriaSavedMsg(null), 4000);
+      } else {
+        const errJson = await res.json();
+        alert(`Lỗi lưu tiêu chí: ${errJson.error || "Không thể cập nhật"}`);
+      }
+    } catch (err: any) {
+      alert(`Lỗi kết nối: ${err.message}`);
+    } finally {
+      setIsSavingCriteria(false);
+    }
+  };
 
   const job = {
     id: jobId,
@@ -90,23 +158,8 @@ export default function JobDetailPage() {
     salary: jobData?.salary_min && jobData?.salary_max ? `${jobData.salary_min.toLocaleString()} - ${jobData.salary_max.toLocaleString()} VND` : "Thỏa thuận",
     type: "Toàn thời gian",
     status: jobData?.status === "closed" ? "closed" : "open",
-    minExp: 2.0,
-    minEdu: "Cử nhân / Kỹ sư",
-    mandatorySkills: ["Kỹ năng chuyên môn"],
-    preferredSkills: ["Kỹ năng bổ trợ"],
-    certifications: ["Chứng chỉ liên quan"],
     applicantsCount: applicants.length,
-    screenedCount: applicants.filter((a) => a.stage !== "applied").length,
     description: jobData?.description || "Chưa có mô tả chi tiết cho vị trí tuyển dụng này.",
-  };
-
-  const handleTriggerScreening = () => {
-    setIsRunningScreening(true);
-    setTimeout(() => {
-      setIsRunningScreening(false);
-      setScreeningSuccess(true);
-      setTimeout(() => setScreeningSuccess(false), 3000);
-    }, 1500);
   };
 
   return (
@@ -131,10 +184,9 @@ export default function JobDetailPage() {
             variant="primary"
             size="sm"
             icon={<Play size={14} />}
-            loading={isRunningScreening}
-            onClick={handleTriggerScreening}
+            onClick={() => setActiveTab("applicants")}
           >
-            Chạy Sàng Lọc AI
+            Xem Ứng Viên ({job.applicantsCount})
           </Button>
         </div>
       </div>
@@ -176,8 +228,8 @@ export default function JobDetailPage() {
               <span className="text-lg font-bold text-[#1A1A1A]">{job.applicantsCount}</span>
             </div>
             <div className="p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E5E0] text-center min-w-[100px]">
-              <span className="text-[11px] text-[#6B6B66] block">Đã Sàng Lọc</span>
-              <span className="text-lg font-bold text-[#0F766E]">{job.screenedCount}</span>
+              <span className="text-[11px] text-[#6B6B66] block">Tiêu Chí Kỹ Năng</span>
+              <span className="text-lg font-bold text-[#0F766E]">{requiredSkills.length + preferredSkills.length}</span>
             </div>
           </div>
         </div>
@@ -217,41 +269,125 @@ export default function JobDetailPage() {
         </div>
       </Card>
 
+      {/* Success Notification */}
+      {criteriaSavedMsg && (
+        <div className="p-3 rounded-lg bg-[#F0FDFA] border border-[#CCFBF1] text-[#0F766E] text-xs flex items-center gap-2">
+          <Check size={14} className="shrink-0" />
+          <span>{criteriaSavedMsg}</span>
+        </div>
+      )}
+
       {/* TAB 1: CRITERIA */}
       {activeTab === "criteria" && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-[#1A1A1A]">Cấu Hình Tiêu Chí So Khớp Kỹ Năng (Job Criteria)</h2>
+              <p className="text-xs text-[#6B6B66]">
+                Tiêu chuẩn kỹ năng bắt buộc và ưu tiên được lưu vào CSDL Supabase để làm cơ sở đối chiếu minh bạch với hồ sơ CV ứng viên.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Save size={14} />}
+              loading={isSavingCriteria}
+              onClick={handleSaveCriteria}
+            >
+              Lưu Tiêu Chí Tuyển Dụng
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Required Skills Card */}
             <Card padding="md">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-[#0F766E]" />
-                <span>Kỹ Năng Bắt Buộc (Mandatory Skills)</span>
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-2 text-[#1A1A1A]">
+                  <CheckCircle2 size={16} className="text-[#0F766E]" />
+                  <span>Kỹ Năng Bắt Buộc (Required Skills)</span>
+                </span>
+                <span className="text-xs text-[#0F766E] font-semibold">{requiredSkills.length} tiêu chí</span>
               </CardTitle>
               <CardDescription className="mb-3">
-                Thiếu bất kỳ kỹ năng nào trong nhóm này sẽ kích hoạt mức phạt -25% điểm kỹ năng.
+                Các kỹ năng chuyên môn cốt lõi bắt buộc phải có minh chứng thực tế trong hồ sơ CV của ứng viên.
               </CardDescription>
-              <div className="flex flex-wrap gap-1.5">
-                {job.mandatorySkills.map((sk, idx) => (
-                  <Badge key={idx} variant="accent" size="sm">
-                    {sk}
-                  </Badge>
-                ))}
+
+              <form onSubmit={handleAddRequiredSkill} className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="Thêm kỹ năng bắt buộc (ví dụ: Python, FastAPI...)"
+                  value={newRequiredInput}
+                  onChange={(e) => setNewRequiredInput(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-xs rounded-md border border-[#E5E5E0] focus:outline-none focus:border-[#0F766E]"
+                />
+                <Button type="submit" variant="secondary" size="sm" icon={<Plus size={13} />}>
+                  Thêm
+                </Button>
+              </form>
+
+              <div className="flex flex-wrap gap-1.5 min-h-[48px] p-2 rounded bg-[#FAFAF8] border border-[#EFEFEA]">
+                {requiredSkills.length === 0 ? (
+                  <span className="text-xs text-[#9E9E98] italic self-center">Chưa có kỹ năng bắt buộc nào. Hãy thêm vào bên trên.</span>
+                ) : (
+                  requiredSkills.map((sk, idx) => (
+                    <Badge key={idx} variant="accent" size="sm" className="flex items-center gap-1 pr-1">
+                      <span>{sk}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRequiredSkill(sk)}
+                        className="text-[#0F766E] hover:text-[#0C5B55] ml-0.5"
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  ))
+                )}
               </div>
             </Card>
 
+            {/* Preferred Skills Card */}
             <Card padding="md">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Sparkles size={16} className="text-[#0F766E]" />
-                <span>Kỹ Năng Ưu Tiên (Preferred Skills)</span>
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span className="flex items-center gap-2 text-[#1A1A1A]">
+                  <Sparkles size={16} className="text-[#0F766E]" />
+                  <span>Kỹ Năng Ưu Tiên (Preferred Skills)</span>
+                </span>
+                <span className="text-xs text-[#6B6B66] font-semibold">{preferredSkills.length} tiêu chí</span>
               </CardTitle>
               <CardDescription className="mb-3">
-                Điểm cộng gia tăng vào trọng số tương thích kỹ năng tổng thể.
+                Các kỹ năng bổ trợ, công cụ cộng thêm giúp đánh giá năng lực mở rộng của ứng viên.
               </CardDescription>
-              <div className="flex flex-wrap gap-1.5">
-                {job.preferredSkills.map((sk, idx) => (
-                  <Badge key={idx} variant="neutral" size="sm">
-                    {sk}
-                  </Badge>
-                ))}
+
+              <form onSubmit={handleAddPreferredSkill} className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="Thêm kỹ năng ưu tiên (ví dụ: Docker, AWS, Redis...)"
+                  value={newPreferredInput}
+                  onChange={(e) => setNewPreferredInput(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-xs rounded-md border border-[#E5E5E0] focus:outline-none focus:border-[#0F766E]"
+                />
+                <Button type="submit" variant="secondary" size="sm" icon={<Plus size={13} />}>
+                  Thêm
+                </Button>
+              </form>
+
+              <div className="flex flex-wrap gap-1.5 min-h-[48px] p-2 rounded bg-[#FAFAF8] border border-[#EFEFEA]">
+                {preferredSkills.length === 0 ? (
+                  <span className="text-xs text-[#9E9E98] italic self-center">Chưa có kỹ năng ưu tiên nào. Hãy thêm vào bên trên.</span>
+                ) : (
+                  preferredSkills.map((sk, idx) => (
+                    <Badge key={idx} variant="neutral" size="sm" className="flex items-center gap-1 pr-1">
+                      <span>{sk}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePreferredSkill(sk)}
+                        className="text-[#6B6B66] hover:text-[#1A1A1A] ml-0.5"
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  ))
+                )}
               </div>
             </Card>
           </div>
@@ -279,7 +415,7 @@ export default function JobDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs ats-table">
                   <thead>
-                    <tr className="border-b border-[#E5E5E0]">
+                    <tr className="border-b border-[#E55E0]">
                       <th className="py-3 px-4">Mã Ứng Viên / Họ Tên</th>
                       <th className="py-3 px-4">Trạng Thái</th>
                       <th className="py-3 px-4">Ngày Ứng Tuyển</th>
@@ -302,9 +438,9 @@ export default function JobDetailPage() {
                           {cand.lastActivity}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <Link href="/candidates">
+                          <Link href={`/candidates/${cand.candidateId || cand.id}`}>
                             <Button variant="secondary" size="sm">
-                              Xem Hồ Sơ
+                              Xem & So Khớp Kỹ Năng
                             </Button>
                           </Link>
                         </td>

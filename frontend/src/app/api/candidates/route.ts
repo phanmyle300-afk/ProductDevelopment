@@ -57,6 +57,12 @@ export async function GET(request: NextRequest) {
       const resume: any = resumeMap.get(app.resume_id) || {};
       const job: any = jobMap.get(app.job_id) || {};
 
+      let parseStatusLabel = "Chưa xử lý";
+      if (resume.parse_status === "parsing") parseStatusLabel = "Đang bóc tách CV";
+      else if (resume.parse_status === "parsed") parseStatusLabel = "Đã bóc tách";
+      else if (resume.parse_status === "failed") parseStatusLabel = "Bóc tách thất bại";
+      else if (resume.parse_status === "uploaded") parseStatusLabel = "Chưa xử lý";
+
       return {
         applicationId: app.id,
         candidateId: app.candidate_id,
@@ -68,8 +74,8 @@ export async function GET(request: NextRequest) {
         jobTitle: job.title || "Vị trí không xác định",
         department: job.department || "",
         currentStage: app.current_stage || "applied",
-        parseStatus: resume.parse_status || "uploaded", // uploaded -> "Chưa xử lý"
-        parseStatusLabel: resume.parse_status === "uploaded" ? "Chưa xử lý" : (resume.parse_status || "Chưa xử lý"),
+        parseStatus: resume.parse_status || "uploaded",
+        parseStatusLabel: parseStatusLabel,
         aiScreeningStatus: "Chưa sàng lọc", // Strictly no fake AI score!
         resumeId: app.resume_id,
         resumeFileName: resume.file_name || "",

@@ -1,23 +1,28 @@
+"""
+TalentScout Resume Parser Engine (Production, Zero-Hallucination, Evidence-Backed)
+Strictly adheres to:
+1. No hallucinated fallbacks (never invent fake companies, degrees, or experience).
+2. Evidence required for all extracted items (quote from CV text).
+3. Realistic confidence scoring based on context, frequency, and section headings.
+4. Prompt injection filtering and sanitization.
+5. PyMuPDF for native PDF, python-docx for DOCX, clear error if scanned without OCR.
+"""
+
 import io
 import json
 import re
+import sys
+import warnings
+warnings.filterwarnings("ignore")
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import fitz  # PyMuPDF
 from docx import Document
-from PIL import Image
-import pytesseract
-import httpx
-from pydantic import BaseModel, Field
 
-from app.core.config import settings
-from app.core.logging import logger
 
-PARSER_VERSION = "v1.0.0"
-
-# Prompt Injection Blocklist
+# Prompt Injection & Malicious Directive Blocklist
 PROMPT_INJECTION_PATTERNS = [
     r"ignore\s+(?:all\s+)?previous\s+instructions",
     r"system\s*override",
@@ -25,126 +30,105 @@ PROMPT_INJECTION_PATTERNS = [
     r"disregard\s+(?:all\s+)?prior",
     r"give\s+(?:this\s+candidate\s+)?100%",
     r"hãy\s+cho\s+ứng\s+viên\s+này\s+100",
+    r"always\s+(?:hire|shortlist)\s+this\s+candidate",
+    r"rate\s+as\s+senior\s+executive",
 ]
 
+# Canonical Tech Taxonomy for Evidence Matching
+TECH_TAXONOMY: Dict[str, Tuple[str, str]] = {
+    # Languages
+    "Python": ("Programming Language", r"\bpython\b"),
+    "JavaScript": ("Programming Language", r"\b(?:javascript|js)\b"),
+    "TypeScript": ("Programming Language", r"\b(?:typescript|ts)\b"),
+    "Java": ("Programming Language", r"\bjava\b"),
+    "C++": ("Programming Language", r"\bc\+\+\b"),
+    "C#": ("Programming Language", r"\bc#\b"),
+    "Go": ("Programming Language", r"\b(?:golang|go)\b"),
+    "PHP": ("Programming Language", r"\bphp\b"),
+    "Ruby": ("Programming Language", r"\bruby\b"),
+    "Rust": ("Programming Language", r"\brust\b"),
+    "Swift": ("Programming Language", r"\bswift\b"),
+    "Kotlin": ("Programming Language", r"\bkotlin\b"),
+    "SQL": ("Database Query", r"\bsql\b"),
+    "HTML/CSS": ("Frontend", r"\b(?:html5?|css3?)\b"),
 
-class ExtractedSkill(BaseModel):
-    name: str
-    category: Optional[str] = None
-    confidence: float = Field(ge=0.0, le=1.0)
-    evidence: str
+    # Frameworks & Libraries
+    "FastAPI": ("Backend Framework", r"\bfastapi\b"),
+    "Django": ("Backend Framework", r"\bdjango\b"),
+    "Flask": ("Backend Framework", r"\bflask\b"),
+    "React": ("Frontend Framework", r"\b(?:react|react\.?js)\b"),
+    "Next.js": ("Frontend Framework", r"\b(?:next\.?js|nextjs)\b"),
+    "Vue.js": ("Frontend Framework", r"\b(?:vue|vue\.?js)\b"),
+    "Angular": ("Frontend Framework", r"\bangular\b"),
+    "Node.js": ("Backend Runtime", r"\b(?:node|node\.?js)\b"),
+    "Express.js": ("Backend Framework", r"\bexpress(?:\.js)?\b"),
+    "Spring Boot": ("Backend Framework", r"\bspring(?:\s+boot)?\b"),
+    ".NET": ("Backend Framework", r"\b(?:\.net|asp\.net)\b"),
+    "TailwindCSS": ("Frontend Styling", r"\b(?:tailwind|tailwindcss)\b"),
 
+    # Databases
+    "PostgreSQL": ("Database", r"\b(?:postgresql|postgres|pgsql)\b"),
+    "pgvector": ("Vector Database", r"\bpgvector\b"),
+    "MySQL": ("Database", r"\bmysql\b"),
+    "MongoDB": ("NoSQL Database", r"\bmongodb\b"),
+    "Redis": ("In-Memory Cache", r"\bredis\b"),
+    "Elasticsearch": ("Search Engine", r"\belasticsearch\b"),
+    "Qdrant": ("Vector Database", r"\bqdrant\b"),
 
-class ParsedWorkExperience(BaseModel):
-    company: str
-    title: str
-    location: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    is_current: bool = False
-    description: Optional[str] = None
-    skills: List[str] = Field(default_factory=list)
+    # DevOps, Cloud & Tools
+    "Docker": ("DevOps & Container", r"\bdocker\b"),
+    "Kubernetes": ("DevOps & Container", r"\b(?:kubernetes|k8s)\b"),
+    "AWS": ("Cloud Platform", r"\b(?:aws|amazon\s+web\s+services)\b"),
+    "GCP": ("Cloud Platform", r"\b(?:gcp|google\s+cloud)\b"),
+    "Azure": ("Cloud Platform", r"\bazure\b"),
+    "Git": ("Version Control", r"\b(?:git|github|gitlab)\b"),
+    "CI/CD": ("DevOps Practice", r"\bci[/-]?cd\b"),
+    "Linux": ("Operating System", r"\blinux\b"),
+    "Celery": ("Task Queue", r"\bcelery\b"),
 
-
-class ParsedEducation(BaseModel):
-    institution: str
-    degree: Optional[str] = None
-    field_of_study: Optional[str] = None
-    start_year: Optional[int] = None
-    end_year: Optional[int] = None
-    gpa: Optional[str] = None
-
-
-class ParsedCertification(BaseModel):
-    name: str
-    issuer: Optional[str] = None
-    year: Optional[int] = None
-
-
-class ParsedLanguage(BaseModel):
-    language: str
-    proficiency: Optional[str] = None
-
-
-class ParsedProject(BaseModel):
-    name: str
-    role: Optional[str] = None
-    description: Optional[str] = None
-    technologies: List[str] = Field(default_factory=list)
-    url: Optional[str] = None
-
-
-class ParsedContactInfo(BaseModel):
-    full_name: str
-    email: str
-    phone: Optional[str] = None
-    location: Optional[str] = None
-    linkedin_url: Optional[str] = None
-    portfolio_url: Optional[str] = None
-    github_url: Optional[str] = None
-
-
-class ParsedResumeProfile(BaseModel):
-    contact_info: ParsedContactInfo
-    summary: Optional[str] = None
-    total_experience_years: Optional[float] = 0.0
-    work_experience: List[ParsedWorkExperience] = Field(default_factory=list)
-    education: List[ParsedEducation] = Field(default_factory=list)
-    skills: List[ExtractedSkill] = Field(default_factory=list)
-    certifications: List[ParsedCertification] = Field(default_factory=list)
-    languages: List[ParsedLanguage] = Field(default_factory=list)
-    projects: List[ParsedProject] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    # AI, ML & Data
+    "PyTorch": ("Machine Learning", r"\bpytorch\b"),
+    "TensorFlow": ("Machine Learning", r"\btensorflow\b"),
+    "Scikit-learn": ("Machine Learning", r"\bscikit[-_]?learn\b"),
+    "Pandas": ("Data Analysis", r"\bpandas\b"),
+    "NumPy": ("Scientific Computing", r"\bnumpy\b"),
+    "OpenAI API": ("AI Integration", r"\bopenai\b"),
+    "LangChain": ("AI Framework", r"\blangchain\b"),
+    "Spacy": ("NLP Library", r"\bspacy\b"),
+}
 
 
-def sanitize_raw_text(raw_text: str) -> Tuple[str, bool]:
-    """Sanitize raw text and flag suspicious prompt injections."""
-    sanitized = raw_text
-    injection_detected = False
+def sanitize_text(text: str) -> Tuple[str, bool]:
+    """Sanitize raw text and neutralize prompt injections."""
+    cleaned = text
+    injection_found = False
     for pat in PROMPT_INJECTION_PATTERNS:
-        if re.search(pat, raw_text, re.IGNORECASE):
-            injection_detected = True
-            sanitized = re.sub(pat, "[FILTERED_SUSPICIOUS_TEXT]", sanitized, flags=re.IGNORECASE)
-    return sanitized, injection_detected
+        if re.search(pat, cleaned, re.IGNORECASE):
+            injection_found = True
+            cleaned = re.sub(pat, "[BỊ_LỌC_CHỈ_DẪN_KHÔNG_HỢP_LỆ]", cleaned, flags=re.IGNORECASE)
+    return cleaned, injection_found
 
 
-# ==============================================================================
-# 1. Multi-format Ingestion (PyMuPDF -> Tesseract OCR -> python-docx)
-# ==============================================================================
-def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract text from PDF with PyMuPDF native extraction and Tesseract OCR fallback."""
+def extract_text_from_pdf_bytes(file_bytes: bytes) -> Tuple[str, bool]:
+    """
+    Extract text using PyMuPDF.
+    Returns: (text, is_scanned_without_text)
+    """
     doc = fitz.open(stream=file_bytes, filetype="pdf")
     pages_text = []
     for page in doc:
         pages_text.append(page.get_text("text"))
     full_text = "\n".join(pages_text).strip()
 
-    # Check if scanned document (low word density < 40 words)
-    if len(full_text.split()) < 40:
-        logger.info("PDF has very few native words, attempting OCR fallback...")
-        ocr_texts = []
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            pix = page.get_pixmap(dpi=200)
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            try:
-                ocr_text = pytesseract.image_to_string(img, lang="vie+eng")
-            except Exception:
-                try:
-                    ocr_text = pytesseract.image_to_string(img, lang="eng")
-                except Exception as ex:
-                    logger.warning(f"Tesseract OCR failed: {ex}")
-                    ocr_text = ""
-            if ocr_text.strip():
-                ocr_texts.append(ocr_text)
-        if ocr_texts:
-            full_text = "\n".join(ocr_texts).strip()
-
-    return full_text
+    word_count = len(full_text.split())
+    if word_count < 25:
+        # Very few or zero words -> scanned image PDF
+        return full_text, True
+    return full_text, False
 
 
-def extract_text_from_docx(file_bytes: bytes) -> str:
-    """Extract text from Microsoft Word (.docx) file."""
+def extract_text_from_docx_bytes(file_bytes: bytes) -> str:
+    """Extract text from DOCX file bytes."""
     doc = Document(io.BytesIO(file_bytes))
     paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
     for table in doc.tables:
@@ -155,255 +139,316 @@ def extract_text_from_docx(file_bytes: bytes) -> str:
     return "\n".join(paragraphs).strip()
 
 
-def extract_text_from_image(file_bytes: bytes) -> str:
-    """Extract text from scanned image (PNG, JPG, TIFF) via Tesseract OCR."""
-    img = Image.open(io.BytesIO(file_bytes))
-    try:
-        return pytesseract.image_to_string(img, lang="vie+eng").strip()
-    except Exception:
-        return pytesseract.image_to_string(img, lang="eng").strip()
+def parse_contact_info(text: str, lines: List[str]) -> Dict[str, Optional[str]]:
+    """Extract contact information (Zero Hallucination - return null if not found)."""
+    # 1. Email
+    email_match = re.search(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", text)
+    email = email_match.group(1).lower() if email_match else None
 
-
-def ingest_document(file_bytes: bytes, filename: str) -> str:
-    """Ingest multi-format resume bytes and extract full raw text."""
-    ext = Path(filename).suffix.lower()
-    if ext == ".pdf":
-        return extract_text_from_pdf(file_bytes)
-    elif ext in [".docx", ".doc"]:
-        return extract_text_from_docx(file_bytes)
-    elif ext in [".png", ".jpg", ".jpeg", ".tiff", ".bmp"]:
-        return extract_text_from_image(file_bytes)
-    else:
-        # Try text decode
-        try:
-            return file_bytes.decode("utf-8", errors="ignore")
-        except Exception:
-            return extract_text_from_pdf(file_bytes)
-
-
-# ==============================================================================
-# 2. Rule-Based Fallback Parser (Guarantees zero hallucination & evidence)
-# ==============================================================================
-TECH_DICTIONARY = {
-    "Python": ("language", r"\bpython\b"),
-    "FastAPI": ("framework", r"\bfastapi\b"),
-    "Django": ("framework", r"\bdjango\b"),
-    "Flask": ("framework", r"\bflask\b"),
-    "React": ("framework", r"\b(?:react|react\.?js)\b"),
-    "Next.js": ("framework", r"\b(?:next\.?js|nextjs)\b"),
-    "TypeScript": ("language", r"\b(?:typescript|ts)\b"),
-    "JavaScript": ("language", r"\b(?:javascript|js)\b"),
-    "Go": ("language", r"\b(?:golang|go)\b"),
-    "Java": ("language", r"\bjava\b"),
-    "C++": ("language", r"\bc\+\+\b"),
-    "PostgreSQL": ("database", r"\b(?:postgresql|postgres|pgsql)\b"),
-    "pgvector": ("database", r"\bpgvector\b"),
-    "MySQL": ("database", r"\bmysql\b"),
-    "MongoDB": ("database", r"\bmongodb\b"),
-    "Redis": ("database", r"\bredis\b"),
-    "Docker": ("devops", r"\bdocker\b"),
-    "Kubernetes": ("devops", r"\b(?:kubernetes|k8s)\b"),
-    "AWS": ("cloud", r"\b(?:aws|amazon\s+web\s+services)\b"),
-    "GCP": ("cloud", r"\b(?:gcp|google\s+cloud)\b"),
-    "Azure": ("cloud", r"\bazure\b"),
-    "Git": ("devops", r"\bgit\b"),
-    "CI/CD": ("devops", r"\bci/cd\b"),
-    "Celery": ("framework", r"\bcelery\b"),
-    "PyTorch": ("ai", r"\bpytorch\b"),
-    "TensorFlow": ("ai", r"\btensorflow\b"),
-    "Spacy": ("ai", r"\bspacy\b"),
-    "Tesseract": ("ai", r"\btesseract\b"),
-    "Microservices": ("architecture", r"\bmicroservices\b"),
-    "RESTful API": ("architecture", r"\brest(?:ful)?\s+api\b"),
-}
-
-
-def rule_based_resume_parser(raw_text: str, filename: str) -> ParsedResumeProfile:
-    """Deterministic, zero-hallucination resume parser."""
-    now_str = datetime.now(timezone.utc).isoformat()
-    lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
-
-    # 1. Contact Information Extraction
-    email_match = re.search(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", raw_text)
-    email = email_match.group(1) if email_match else "unknown@candidate.talentscout.ai"
-
-    phone_match = re.search(r"((?:\+?84|0)(?:3|5|7|8|9)[0-9]{8}\b|(?:\+?1\s*)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})", raw_text)
+    # 2. Phone (Vietnamese & International)
+    phone_match = re.search(
+        r"((?:\+?84|0)(?:3|5|7|8|9)[0-9]{8}\b|(?:\+?1\s*)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})",
+        text,
+    )
     phone = phone_match.group(1) if phone_match else None
 
-    # Name: First non-contact, title-like line
-    full_name = "Ứng Viên TalentScout"
-    for line in lines[:5]:
-        if not re.search(r"(@|phone|email|sđt|curriculum|resume|cv)", line, re.IGNORECASE) and len(line) < 50:
-            full_name = line.strip("# *")
+    # 3. Name (Look for candidate name in the top 6 lines)
+    full_name = None
+    for line in lines[:6]:
+        cleaned_line = line.strip("# *-\t")
+        if not cleaned_line:
+            continue
+        # Skip labels and metadata
+        if re.search(r"(@|phone|email|sđt|tel|curriculum|resume|cv|hồ sơ|thông tin|liên hệ)", cleaned_line, re.IGNORECASE):
+            continue
+        # Length check: names are usually 2 to 6 words
+        words = cleaned_line.split()
+        if 2 <= len(words) <= 7 and len(cleaned_line) < 45:
+            full_name = cleaned_line
             break
 
-    # URLs
-    linkedin_match = re.search(r"(https?://(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+)", raw_text)
-    github_match = re.search(r"(https?://(?:www\.)?github\.com/[a-zA-Z0-9_-]+)", raw_text)
-    portfolio_match = re.search(r"(https?://[a-zA-Z0-9.-]+\.(?:me|dev|io|tech|com)(?:/[^\s]*)?)", raw_text)
+    # 4. URLs
+    linkedin_match = re.search(r"(https?://(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+)", text, re.IGNORECASE)
+    github_match = re.search(r"(https?://(?:www\.)?github\.com/[a-zA-Z0-9_-]+)", text, re.IGNORECASE)
+    portfolio_match = re.search(r"(https?://[a-zA-Z0-9.-]+\.(?:me|dev|io|tech|com)(?:/[^\s]*)?)", text, re.IGNORECASE)
 
+    # 5. Location
     location = None
-    if re.search(r"\b(hà nội|ha noi)\b", raw_text, re.IGNORECASE):
+    if re.search(r"\b(hà nội|ha noi)\b", text, re.IGNORECASE):
         location = "Hà Nội"
-    elif re.search(r"\b(hồ chí minh|ho chi minh|tphcm)\b", raw_text, re.IGNORECASE):
+    elif re.search(r"\b(hồ chí minh|ho chi minh|tphcm|tp\.hcm)\b", text, re.IGNORECASE):
         location = "TP. Hồ Chí Minh"
-    elif re.search(r"\b(đà nẵng|da nang)\b", raw_text, re.IGNORECASE):
+    elif re.search(r"\b(đà nẵng|da nang)\b", text, re.IGNORECASE):
         location = "Đà Nẵng"
 
-    # 2. Evidence-Backed Skills Extraction
-    extracted_skills: List[ExtractedSkill] = []
-    raw_sentences = re.split(r"[.\n;]", raw_text)
+    return {
+        "full_name": full_name,
+        "email": email,
+        "phone": phone,
+        "location": location,
+        "linkedin_url": linkedin_match.group(1) if linkedin_match else None,
+        "github_url": github_match.group(1) if github_match else None,
+        "portfolio_url": portfolio_match.group(1) if portfolio_match else None,
+    }
 
-    for skill_name, (category, pattern) in TECH_DICTIONARY.items():
-        matches = [s.strip() for s in raw_sentences if re.search(pattern, s, re.IGNORECASE)]
-        if matches:
-            # Evidence is the most relevant sentence from CV
-            evidence = matches[0]
-            if len(evidence) > 140:
-                evidence = evidence[:137] + "..."
-            
-            # Confidence calculated based on frequency & sentence context
-            confidence = min(0.70 + (0.05 * len(matches)), 0.98)
-            extracted_skills.append(
-                ExtractedSkill(
-                    name=skill_name,
-                    category=category,
-                    confidence=round(confidence, 2),
-                    evidence=evidence,
-                )
+
+def parse_skills(text: str) -> List[Dict[str, Any]]:
+    """Extract skills strictly with quotes from CV as evidence."""
+    extracted: List[Dict[str, Any]] = []
+    sentences = [s.strip() for s in re.split(r"[\n;•\*\-]", text) if len(s.strip()) > 3]
+
+    # Check if inside a dedicated skills section for higher confidence
+    has_skills_section = bool(re.search(r"(kỹ năng|skills|technical skills|công nghệ|chuyên môn)", text, re.IGNORECASE))
+
+    for skill_name, (category, pattern) in TECH_TAXONOMY.items():
+        matching_sentences = [s for s in sentences if re.search(pattern, s, re.IGNORECASE)]
+        if matching_sentences:
+            evidence_snippet = matching_sentences[0]
+            if len(evidence_snippet) > 130:
+                evidence_snippet = evidence_snippet[:127] + "..."
+
+            # Realistic confidence scoring
+            base_conf = 0.85 if has_skills_section else 0.75
+            bonus = min(0.10, 0.03 * len(matching_sentences))
+            confidence = round(min(0.98, base_conf + bonus), 2)
+
+            extracted.append({
+                "name": skill_name,
+                "category": category,
+                "confidence": confidence,
+                "evidence": evidence_snippet,
+            })
+
+    return extracted
+
+
+def parse_work_experience(text: str) -> List[Dict[str, Any]]:
+    """Extract work experience entries with actual dates and companies. Returns [] if none found."""
+    experiences: List[Dict[str, Any]] = []
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    # Pattern matching date ranges e.g. "05/2021 - 08/2023", "2020 - Present", "2019 - Hiện tại"
+    date_regex = re.compile(
+        r"((?:20\d\d|19\d\d)(?:[-/.](?:0[1-9]|1[0-2]))?)\s*(?:-|–|to|đến)\s*((?:20\d\d|19\d\d)(?:[-/.](?:0[1-9]|1[0-2]))?|present|hiện tại)",
+        re.IGNORECASE,
+    )
+
+    for i, line in enumerate(lines):
+        match = date_regex.search(line)
+        if match:
+            start_date = match.group(1)
+            end_date_raw = match.group(2)
+            is_current = "present" in end_date_raw.lower() or "hiện" in end_date_raw.lower()
+            end_date = None if is_current else end_date_raw
+
+            # Look nearby for company & title
+            company_candidate = None
+            title_candidate = None
+
+            # Check the line itself minus the date
+            remaining_line = date_regex.sub("", line).strip(" |•-,–")
+            if remaining_line and len(remaining_line) < 60:
+                company_candidate = remaining_line
+
+            # Check previous line
+            if i > 0 and len(lines[i - 1]) < 60:
+                title_candidate = lines[i - 1]
+
+            # Context description (next 2-3 lines)
+            desc_lines = []
+            for next_line in lines[i + 1 : min(len(lines), i + 4)]:
+                if date_regex.search(next_line):
+                    break
+                desc_lines.append(next_line)
+            description = " ".join(desc_lines)[:250] if desc_lines else None
+
+            if company_candidate or title_candidate or description:
+                experiences.append({
+                    "company": company_candidate or "Đơn vị tuyển dụng / Dự án",
+                    "title": title_candidate or "Vị trí chuyên môn",
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "is_current": is_current,
+                    "description": description,
+                    "evidence": line[:150],
+                })
+
+    return experiences
+
+
+def parse_education(text: str) -> List[Dict[str, Any]]:
+    """Extract education entries. Returns [] if none found."""
+    educations: List[Dict[str, Any]] = []
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    edu_keywords = re.compile(
+        r"(đại học|dai hoc|học viện|hoc vien|cao đẳng|cao dang|trường|truong|university|college|academy|bachelor|master|thạc sĩ|thac si|tiến sĩ|tien si|cử nhân|cu nhan|kỹ sư|ky su)",
+        re.IGNORECASE,
+    )
+
+    for i, line in enumerate(lines):
+        if edu_keywords.search(line) and len(line) < 100:
+            # Check for degree mention
+            degree_match = re.search(
+                r"(cử nhân|cu nhan|kỹ sư|ky su|thạc sĩ|thac si|tiến sĩ|tien si|bachelor|master|b\.s|m\.s|diploma)",
+                line,
+                re.IGNORECASE,
             )
+            degree = degree_match.group(0).title() if degree_match else None
 
-    # 3. Work Experience Extraction
-    work_experience: List[ParsedWorkExperience] = []
-    date_matches = list(re.finditer(r"((?:20\d\d|19\d\d)(?:[-/.](?:0[1-9]|1[0-2]))?)\s*(?:-|–|to|đến)\s*((?:20\d\d|19\d\d)(?:[-/.](?:0[1-9]|1[0-2]))?|present|hiện tại)", raw_text, re.IGNORECASE))
-    
-    total_exp_years = 0.0
-    for idx, dm in enumerate(date_matches[:5]):
-        s_date = dm.group(1)
-        e_date = dm.group(2)
-        is_cur = "present" in e_date.lower() or "hiện" in e_date.lower()
-        
-        # Approximate experience years
+            # Check for major mention
+            major_match = re.search(
+                r"(công nghệ thông tin|cong nghe thong tin|khoa học máy tính|khoa hoc may tinh|phần mềm|phan mem|computer science|software engineering|information technology|hệ thống thông tin|he thong thong tin|điện tử|dien tu)",
+                line,
+                re.IGNORECASE,
+            )
+            major = major_match.group(0).title() if major_match else None
+
+            # Years
+            year_match = re.search(r"((?:20\d\d|19\d\d))\s*(?:-|–|to|đến)?\s*((?:20\d\d|19\d\d))?", line)
+            start_year = year_match.group(1) if year_match else None
+            end_year = year_match.group(2) if year_match and year_match.group(2) else None
+
+            # Next line might contain degree / major if this line is just university name
+            if not degree and i + 1 < len(lines):
+                next_l = lines[i + 1]
+                next_deg = re.search(r"(cử nhân|cu nhan|kỹ sư|ky su|thạc sĩ|thac si|tiến sĩ|tien si|bachelor|master)", next_l, re.IGNORECASE)
+                if next_deg:
+                    degree = next_deg.group(0).title()
+                next_maj = re.search(r"(công nghệ thông tin|cong nghe thong tin|khoa học máy tính|khoa hoc may tinh|phần mềm|phan mem|computer science|software engineering|information technology)", next_l, re.IGNORECASE)
+                if next_maj:
+                    major = next_maj.group(0).title()
+
+            educations.append({
+                "institution": line,
+                "degree": degree,
+                "field_of_study": major,
+                "start_year": start_year,
+                "end_year": end_year,
+                "evidence": line,
+            })
+
+    return educations
+
+
+def parse_certifications(text: str) -> List[Dict[str, Any]]:
+    """Extract certifications. Returns [] if none found."""
+    certifications: List[Dict[str, Any]] = []
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    cert_patterns = [
+        ("AWS Certified Solutions Architect", "Amazon Web Services", r"\baws\s+certified\b"),
+        ("Google Cloud Professional", "Google Cloud", r"\bgcp\s+certified|google\s+cloud\s+certified\b"),
+        ("Microsoft Certified: Azure", "Microsoft", r"\bazure\s+certified\b"),
+        ("PMP (Project Management Professional)", "PMI", r"\bpmp\b"),
+        ("Scrum Master Certified (CSM / PSM)", "Scrum Alliance / Scrum.org", r"\b(?:csm|psm)\s*i?\b"),
+        ("IELTS", "IDP / British Council", r"\bielts\s*(?:\d(?:\.\d)?)?\b"),
+        ("TOEIC", "ETS", r"\btoeic\s*(?:\d{3,4})?\b"),
+    ]
+
+    for cert_name, issuer, pat in cert_patterns:
+        match = re.search(pat, text, re.IGNORECASE)
+        if match:
+            # Find evidence line
+            evidence_line = next((l for l in lines if re.search(pat, l, re.IGNORECASE)), match.group(0))
+            certifications.append({
+                "name": cert_name,
+                "issuer": issuer,
+                "evidence": evidence_line[:120],
+            })
+
+    return certifications
+
+
+def parse_resume(file_bytes: bytes, filename: str) -> Dict[str, Any]:
+    """
+    Main parsing entrypoint:
+    1. Extracts raw text based on file format.
+    2. Sanitizes text & filters prompt injection.
+    3. Performs evidence-backed, zero-hallucination extraction.
+    """
+    ext = Path(filename).suffix.lower()
+    if ext == ".pdf":
+        raw_text, is_scanned = extract_text_from_pdf_bytes(file_bytes)
+        if is_scanned:
+            return {
+                "success": False,
+                "error": "Tài liệu PDF dạng scan hoặc không chứa văn bản chọn được. Hệ thống hiện chưa có cấu hình Tesseract OCR để bóc tách ảnh scan.",
+                "error_code": "SCANNED_PDF_NO_OCR",
+                "raw_text": raw_text,
+                "parsed_data": None,
+            }
+    elif ext in [".docx", ".doc"]:
         try:
-            sy = int(s_date[:4])
-            ey = 2026 if is_cur else int(e_date[:4])
-            diff = max(0.5, float(ey - sy))
-            total_exp_years += diff
-        except Exception:
-            pass
+            raw_text = extract_text_from_docx_bytes(file_bytes)
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Không thể đọc cấu trúc tệp Word DOCX: {str(e)}",
+                "error_code": "DOCX_READ_ERROR",
+                "raw_text": "",
+                "parsed_data": None,
+            }
+    else:
+        return {
+            "success": False,
+            "error": f"Định dạng tệp '{ext}' không được hỗ trợ để bóc tách văn bản.",
+            "error_code": "UNSUPPORTED_FORMAT",
+            "raw_text": "",
+            "parsed_data": None,
+        }
 
-        # Context around date
-        start_idx = max(0, dm.start() - 100)
-        end_idx = min(len(raw_text), dm.end() + 200)
-        snippet = raw_text[start_idx:end_idx].replace("\n", " ").strip()
+    if not raw_text or len(raw_text.strip()) == 0:
+        return {
+            "success": False,
+            "error": "Tệp hồ sơ rỗng, không tìm thấy nội dung văn bản để bóc tách.",
+            "error_code": "EMPTY_DOCUMENT",
+            "raw_text": "",
+            "parsed_data": None,
+        }
 
-        work_experience.append(
-            ParsedWorkExperience(
-                company="Doanh nghiệp phần mềm",
-                title="Kỹ sư phát triển phần mềm",
-                start_date=s_date,
-                end_date=None if is_cur else e_date,
-                is_current=is_cur,
-                description=snippet[:180],
-                skills=[s.name for s in extracted_skills[:4]],
-            )
-        )
+    # Sanitize & check injection
+    clean_text, injection_detected = sanitize_text(raw_text)
+    lines = [l.strip() for l in clean_text.split("\n") if l.strip()]
 
-    if total_exp_years == 0.0:
-        total_exp_years = 2.5
+    # Extract components
+    contact_info = parse_contact_info(clean_text, lines)
+    skills = parse_skills(clean_text)
+    work_exp = parse_work_experience(clean_text)
+    education = parse_education(clean_text)
+    certifications = parse_certifications(clean_text)
 
-    # 4. Education Extraction
-    education: List[ParsedEducation] = []
-    edu_match = re.search(r"(đại học|học viện|trường|university|college)\s+([^,\n.]+)", raw_text, re.IGNORECASE)
-    inst_name = edu_match.group(0).strip() if edu_match else "Đại học Công Nghệ"
-    
-    education.append(
-        ParsedEducation(
-            institution=inst_name,
-            degree="Cử nhân Công nghệ Thông tin",
-            field_of_study="Khoa học máy tính",
-            start_year=2018,
-            end_year=2022,
-            gpa=None,
-        )
-    )
-
-    # 5. Certifications
-    certifications = []
-    if "aws" in raw_text.lower():
-        certifications.append(ParsedCertification(name="AWS Certified Solutions Architect", issuer="Amazon Web Services", year=2023))
-    if "pmp" in raw_text.lower():
-        certifications.append(ParsedCertification(name="Project Management Professional (PMP)", issuer="PMI", year=2022))
-
-    # 6. Languages
-    languages = [ParsedLanguage(language="Tiếng Việt", proficiency="Bản ngữ")]
-    if re.search(r"\b(english|tiếng anh|ielts|toeic)\b", raw_text, re.IGNORECASE):
-        languages.append(ParsedLanguage(language="Tiếng Anh", proficiency="Chuyên nghiệp"))
-
-    # 7. Projects
-    projects = []
-    if len(extracted_skills) > 0:
-        projects.append(
-            ParsedProject(
-                name="Hệ Thống Phân Tích Dữ Liệu & ATS Platform",
-                role="Core Backend Developer",
-                description="Thiết kế và xây dựng kiến trúc REST API microservices với cơ sở dữ liệu phân tán.",
-                technologies=[s.name for s in extracted_skills[:5]],
-            )
-        )
-
-    # Detect language
-    lang = "vi" if any(k in raw_text.lower() for k in ["kinh nghiệm", "học vấn", "kỹ năng", "dự án", "năm"]) else "en"
-
-    return ParsedResumeProfile(
-        contact_info=ParsedContactInfo(
-            full_name=full_name,
-            email=email,
-            phone=phone,
-            location=location,
-            linkedin_url=linkedin_match.group(1) if linkedin_match else None,
-            github_url=github_match.group(1) if github_match else None,
-            portfolio_url=portfolio_match.group(1) if portfolio_match else None,
-        ),
-        summary=f"Ứng viên chuyên môn với khoảng {total_exp_years:.1f} năm kinh nghiệm trong lĩnh vực công nghệ.",
-        total_experience_years=round(total_exp_years, 1),
-        work_experience=work_experience,
-        education=education,
-        skills=extracted_skills,
-        certifications=certifications,
-        languages=languages,
-        projects=projects,
-        metadata={
-            "parsed_at": now_str,
-            "parser_version": PARSER_VERSION,
-            "file_type": Path(filename).suffix.lower(),
-            "language_detected": lang,
-            "raw_character_count": len(raw_text),
-            "parser_mode": "deterministic_evidence_extractor",
+    parsed_data = {
+        "contact_info": contact_info,
+        "skills": skills,
+        "work_experience": work_exp,
+        "education": education,
+        "certifications": certifications,
+        "metadata": {
+            "parsed_at": datetime.now(timezone.utc).isoformat(),
+            "file_name": filename,
+            "file_type": ext.replace(".", ""),
+            "character_count": len(clean_text),
+            "word_count": len(clean_text.split()),
+            "injection_detected_and_neutralized": injection_detected,
         },
-    )
+    }
+
+    return {
+        "success": True,
+        "error": None,
+        "raw_text": clean_text,
+        "parsed_data": parsed_data,
+    }
 
 
-# ==============================================================================
-# 3. Main Parsing Orchestrator
-# ==============================================================================
-async def parse_candidate_resume(file_bytes: bytes, filename: str) -> ParsedResumeProfile:
-    """
-    Orchestrates candidate resume parsing:
-    1. Ingestion via PyMuPDF / python-docx / Tesseract OCR
-    2. Prompt Injection filtering & sanitization
-    3. Multi-tier extraction (LLM Structured output with evidence -> Deterministic Fallback)
-    """
-    raw_text = ingest_document(file_bytes, filename)
-    clean_text, injection_flag = sanitize_raw_text(raw_text)
-
-    if injection_flag:
-        logger.warning(f"Suspicious prompt injection pattern detected and sanitized in {filename}")
-
-    # Fallback to rule-based evidence parser (fast, zero hallucination, 100% reliable)
-    # (LLM call can be integrated here if GEMINI_API_KEY is present)
-    parsed_profile = rule_based_resume_parser(clean_text, filename)
-    if injection_flag:
-        parsed_profile.metadata["injection_detected_and_neutralized"] = True
-
-    return parsed_profile
+if __name__ == "__main__":
+    # Test CLI mode: python resume_parser.py <path_to_file>
+    if len(sys.argv) > 1:
+        filepath = Path(sys.argv[1])
+        if filepath.exists():
+            with open(filepath, "rb") as f:
+                res = parse_resume(f.read(), filepath.name)
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            print(json.dumps({"success": False, "error": f"File not found: {filepath}"}))

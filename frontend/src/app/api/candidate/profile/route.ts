@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
     // Get latest resume for candidate
     const { data: resume } = await supabase
       .from("resumes")
-      .select("id, file_name, file_type, file_size, file_url, parse_status, created_at")
+      .select("id, file_name, file_type, file_size, file_url, parse_status, raw_text")
       .eq("candidate_id", candidate.id)
-      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(1)
       .maybeSingle();
 

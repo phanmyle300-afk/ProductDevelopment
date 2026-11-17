@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -12,66 +12,108 @@ import {
   Shield,
   Play,
   ChevronRight,
+  RefreshCw,
+  Users,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+interface CandidateMatchItem {
+  id: string;
+  applicationId: string;
+  candidateId: string;
+  blindCode: string;
+  name: string;
+  score: number;
+  skillsMatched: string[];
+  missingSkills: string[];
+  hasMatch: boolean;
+}
 
 export default function JobMatchesPage() {
   const params = useParams();
-  const jobId = params?.id || "job-1";
+  const jobId = (params?.id as string) || "";
   const [isBlindMode, setIsBlindMode] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [candidates, setCandidates] = useState<CandidateMatchItem[]>([]);
+  const [jobTitle, setJobTitle] = useState<string>("");
 
-  const candidates = [
-    {
-      rank: 1,
-      id: "cand-1",
-      blindCode: "Candidate #TSC-4A8F",
-      name: "Nguyễn Văn An",
-      score: 92,
-      recommendation: "strong_hire",
-      skillsMatched: ["Python", "FastAPI", "PostgreSQL", "Docker", "pgvector"],
-      missingSkills: [],
-      hardFilterPass: true,
-      expYears: 5.5,
-    },
-    {
-      rank: 2,
-      id: "cand-2",
-      blindCode: "Candidate #TSC-7C21",
-      name: "Trần Thị Bích",
-      score: 86,
-      recommendation: "strong_hire",
-      skillsMatched: ["FastAPI", "PostgreSQL", "Docker", "Redis"],
-      missingSkills: ["pgvector"],
-      hardFilterPass: true,
-      expYears: 6.0,
-    },
-    {
-      rank: 3,
-      id: "cand-3",
-      blindCode: "Candidate #TSC-9E4B",
-      name: "Phạm Quốc Dũng",
-      score: 78,
-      recommendation: "review",
-      skillsMatched: ["Python", "FastAPI", "PostgreSQL"],
-      missingSkills: ["Docker", "pgvector"],
-      hardFilterPass: true,
-      expYears: 4.0,
-    },
-    {
-      rank: 4,
-      id: "cand-4",
-      blindCode: "Candidate #TSC-192B",
-      name: "Hoàng Minh Đức",
-      score: 54,
-      recommendation: "hold",
-      skillsMatched: ["Python", "React"],
-      missingSkills: ["Docker", "FastAPI", "PostgreSQL"],
-      hardFilterPass: false,
-      expYears: 2.5,
-    },
-  ];
+  useEffect(() => {
+    async function loadMatches() {
+      try {
+        setLoading(true);
+        const [jobsRes, appsRes] = await Promise.all([
+          fetch("/api/jobs"),
+          fetch("/api/applications"),
+        ]);
+
+        if (jobsRes.ok) {
+          const jData = await jobsRes.json();
+          const found = (jData.jobs || []).find((j: any) => j.id === jobId);
+          if (found) setJobTitle(found.title);
+        }
+
+        if (appsRes.ok) {
+          const aData = await appsRes.json();
+          const jobApps = (aData.applications || []).filter((a: any) => a.job_id === jobId);
+
+          // Fetch match snapshot for each application
+          const items: CandidateMatchItem[] = [];
+
+          for (const app of jobApps) {
+            let score = 0;
+            let matchedSkills: string[] = [];
+            let missingSkills: string[] = [];
+            let hasMatch = false;
+
+            try {
+              const mRes = await fetch(`/api/applications/${app.id}/match-skills`);
+              if (mRes.ok) {
+                const mData = await mRes.json();
+                if (mData.has_match && mData.snapshot) {
+                  hasMatch = true;
+                  score = mData.snapshot.skills_score || 0;
+                  matchedSkills = (mData.snapshot.required_matches || [])
+                    .filter((m: any) => m.found)
+                    .map((m: any) => m.skill_name);
+                  missingSkills = (mData.snapshot.required_matches || [])
+                    .filter((m: any) => !m.found)
+                    .map((m: any) => m.skill_name);
+                }
+              }
+            } catch {}
+
+            const candName = app.candidates?.full_name || "Ứng viên";
+            const shortId = (app.candidate_id || app.id || "0000").slice(0, 4).toUpperCase();
+
+            items.push({
+              id: app.id,
+              applicationId: app.id,
+              candidateId: app.candidate_id,
+              blindCode: `Candidate #TSC-${shortId}`,
+              name: candName,
+              score,
+              skillsMatched: matchedSkills,
+              missingSkills: missingSkills,
+              hasMatch,
+            });
+          }
+
+          // Sort by skill score descending
+          items.sort((a, b) => b.score - a.score);
+          setCandidates(items);
+        }
+      } catch (err) {
+        console.error("Lỗi nạp kết quả so khớp:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (jobId) loadMatches();
+  }, [jobId]);
 
   return (
     <div className="space-y-6">
@@ -100,96 +142,113 @@ export default function JobMatchesPage() {
       <div className="pb-2 border-b border-[#E5E5E0] flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
-            Kết Quả Sàng Lọc AI & Xếp Hạng Vị Trí #{jobId}
+            Kết Quả So Khớp Kỹ Năng &bull; {jobTitle || `Vị Trí #${jobId.slice(0, 8)}`}
           </h1>
           <p className="text-xs text-[#6B6B66] mt-1">
-            Bảng xếp hạng ứng viên theo thuật toán Hybrid Match (Skills 40%, Exp 25%, Edu 15%, Semantic 20%).
+            Bảng đối chiếu kỹ năng thực tế giữa CV đã bóc tách và tiêu chí tuyển dụng (Zero Hallucination).
           </p>
         </div>
 
-        <Button variant="primary" size="md" icon={<Play size={14} />}>
-          Chạy Lại Sàng Lọc
-        </Button>
+        <Link href={`/jobs/${jobId}`}>
+          <Button variant="outline" size="sm">
+            Xem Tiêu Chí Tuyển Dụng
+          </Button>
+        </Link>
       </div>
 
-      <Card padding="none" className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs ats-table">
-            <thead>
-              <tr className="border-b border-[#E5E5E0]">
-                <th className="py-3 px-4 w-12 text-center">Hạng</th>
-                <th className="py-3 px-4">Ứng Viên / Định Danh</th>
-                <th className="py-3 px-4">Điểm Tương Thích</th>
-                <th className="py-3 px-4">Khuyến Nghị AI</th>
-                <th className="py-3 px-4">Kỹ Năng Đạt Được</th>
-                <th className="py-3 px-4">Hard Filter</th>
-                <th className="py-3 px-4 text-right">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EFEFEA]">
-              {candidates.map((cand) => {
-                const displayName = isBlindMode ? cand.blindCode : cand.name;
-                return (
-                  <tr key={cand.id} className="ats-interactive hover:bg-[#FAFAF8]">
-                    <td className="py-3.5 px-4 text-center font-bold text-xs text-[#0F766E]">
-                      #{cand.rank}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Link href={`/candidates/${cand.id}`} className="font-semibold text-sm text-[#1A1A1A] hover:text-[#0F766E] block">
-                        {displayName}
-                      </Link>
-                      <span className="text-[11px] text-[#6B6B66]">{cand.expYears} năm kinh nghiệm</span>
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-base text-[#15803D]">
-                      {cand.score}%
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Badge
-                        variant={cand.recommendation === "strong_hire" ? "success" : "warning"}
-                        size="sm"
-                      >
-                        {cand.recommendation === "strong_hire" ? "Phỏng vấn ngay" : "Xem xét thêm"}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {cand.skillsMatched.map((s, idx) => (
-                          <span
-                            key={idx}
-                            className="px-1.5 py-0.5 rounded bg-[#F0FDF4] border border-[#DCFCE7] text-[10px] font-medium text-[#15803D]"
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {cand.hardFilterPass ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[#15803D] font-semibold">
-                          <CheckCircle2 size={13} />
-                          <span>PASS</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[#B91C1C] font-semibold">
-                          <AlertCircle size={13} />
-                          <span>FAIL (-25%)</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Link href={`/candidates/${cand.id}`}>
-                        <Button variant="secondary" size="sm" icon={<ChevronRight size={13} />} iconPosition="right">
-                          Xem XAI
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] space-y-3">
+          <RefreshCw size={24} className="text-[#0F766E] animate-spin" />
+          <p className="text-xs text-[#6B6B66]">Đang tải kết quả so khớp thực tế từ Supabase...</p>
         </div>
-      </Card>
+      ) : candidates.length === 0 ? (
+        <EmptyState
+          icon={<Users size={28} />}
+          title="Chưa có ứng viên nào ứng tuyển vào vị trí này"
+          description="Hiện tại chưa có hồ sơ ứng tuyển để thực hiện so khớp kỹ năng. Hãy thêm ứng viên và tải CV trước."
+          action={
+            <Link href="/candidates/upload">
+              <Button variant="primary" size="sm">
+                Thêm Ứng Viên & Tải CV
+              </Button>
+            </Link>
+          }
+        />
+      ) : (
+        <Card padding="none" className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs ats-table">
+              <thead>
+                <tr className="border-b border-[#E5E5E0]">
+                  <th className="py-3 px-4 w-12 text-center">Hạng</th>
+                  <th className="py-3 px-4">Ứng Viên / Định Danh</th>
+                  <th className="py-3 px-4">Tỷ Lệ Khớp Kỹ Năng</th>
+                  <th className="py-3 px-4">Trạng Thái So Khớp</th>
+                  <th className="py-3 px-4">Kỹ Năng Đạt Được</th>
+                  <th className="py-3 px-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EFEFEA]">
+                {candidates.map((cand, idx) => {
+                  const displayName = isBlindMode ? cand.blindCode : cand.name;
+                  return (
+                    <tr key={cand.id} className="ats-interactive hover:bg-[#FAFAF8]">
+                      <td className="py-3.5 px-4 text-center font-bold text-xs text-[#0F766E]">
+                        #{idx + 1}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Link href={`/candidates/${cand.candidateId || cand.id}`} className="font-semibold text-sm text-[#1A1A1A] hover:text-[#0F766E] block">
+                          {displayName}
+                        </Link>
+                        <span className="text-[11px] font-mono text-[#6B6B66]">{cand.blindCode}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-base text-[#15803D]">
+                        {cand.hasMatch ? `${cand.score}%` : "—"}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {cand.hasMatch ? (
+                          <Badge variant="success" size="sm">
+                            Đã so khớp kỹ năng
+                          </Badge>
+                        ) : (
+                          <Badge variant="neutral" size="sm">
+                            Chưa so khớp
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {cand.skillsMatched.length === 0 ? (
+                            <span className="text-[11px] text-[#9E9E98] italic">
+                              {cand.hasMatch ? "Chưa tìm thấy bằng chứng" : "Chưa kích hoạt"}
+                            </span>
+                          ) : (
+                            cand.skillsMatched.map((s, sIdx) => (
+                              <span
+                                key={sIdx}
+                                className="px-1.5 py-0.5 rounded bg-[#F0FDF4] border border-[#DCFCE7] text-[10px] font-medium text-[#15803D]"
+                              >
+                                {s}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Link href={`/candidates/${cand.candidateId || cand.id}`}>
+                          <Button variant="secondary" size="sm">
+                            Chi Tiết So Khớp
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
