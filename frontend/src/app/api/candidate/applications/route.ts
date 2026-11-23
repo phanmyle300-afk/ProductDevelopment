@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession } from "@/lib/auth-guard";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +10,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu email ứng viên" }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const { supabase, auth } = await verifyServerSession(req);
+
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
+    }
+
+    // If caller is authenticated as candidate, enforce that email matches their account
+    if (auth.role === "candidate") {
+      if (auth.email && auth.email.toLowerCase() !== email.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Bạn không có quyền truy cập hồ sơ ứng tuyển của người khác." },
+          { status: 403 }
+        );
+      }
+    }
 
     // Find candidate by email
     const { data: cand } = await supabase
@@ -29,7 +43,7 @@ export async function GET(req: NextRequest) {
       .select(`
         id,
         current_stage,
-        created_at,
+        applied_at,
         job_id,
         resume_id,
         jobs (
@@ -41,7 +55,7 @@ export async function GET(req: NextRequest) {
         )
       `)
       .eq("candidate_id", cand.id)
-      .order("created_at", { ascending: false });
+      .order("applied_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -90,8 +104,8 @@ export async function GET(req: NextRequest) {
         jobTitle: job.title || "Vị trí tuyển dụng",
         department: job.department || "Chung",
         location: job.location || "Toàn quốc",
-        appliedDate: app.created_at ? new Date(app.created_at).toLocaleDateString("vi-VN") : "Gần đây",
-        lastUpdated: app.created_at ? new Date(app.created_at).toLocaleDateString("vi-VN") : "Gần đây",
+        appliedDate: app.applied_at ? new Date(app.applied_at).toLocaleDateString("vi-VN") : "Gần đây",
+        lastUpdated: app.applied_at ? new Date(app.applied_at).toLocaleDateString("vi-VN") : "Gần đây",
         status: stage,
         statusText: info.text,
         nextStep: info.nextStep,

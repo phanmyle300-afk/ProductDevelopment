@@ -40,37 +40,94 @@ export default function CandidateProfilePage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleParseMyResume = async () => {
-    if (!existingResume?.id) return;
+  const handleParseMyResume = async (targetResumeId?: string) => {
+    const resumeId = targetResumeId || existingResume?.id;
+    if (!resumeId) return;
     setIsParsingResume(true);
     setResumeParseError(null);
-    setExistingResume({ ...existingResume, parse_status: "parsing" });
+    setExistingResume((prev: any) => prev ? { ...prev, parse_status: "parsing" } : null);
 
     try {
-      const res = await fetch(`/api/resumes/${existingResume.id}/parse`, {
+      const res = await fetch(`/api/resumes/${resumeId}/parse`, {
         method: "POST",
       });
       const result = await res.json();
       if (!res.ok || !result.success) {
         setResumeParseError(result.error || "Bóc tách CV thất bại");
-        setExistingResume({ ...existingResume, parse_status: "failed" });
+        setExistingResume((prev: any) => prev ? { ...prev, parse_status: "failed" } : null);
         return;
       }
-      setExistingResume({
-        ...existingResume,
+      setExistingResume((prev: any) => ({
+        ...(prev || {}),
+        id: resumeId,
         parse_status: "parsed",
         raw_text: result.raw_text,
         parsed_data: result.parsed_data,
-      });
+      }));
       if (result.parsed_data?.skills && result.parsed_data.skills.length > 0) {
-        const extractedNames = result.parsed_data.skills.map((s: any) => s.name);
+        const extractedNames = result.parsed_data.skills
+          .map((s: any) => (typeof s === "string" ? s : s?.name))
+          .filter(Boolean);
         setSkills((prev) => Array.from(new Set([...prev, ...extractedNames])));
       }
     } catch (err: any) {
       setResumeParseError(err.message || "Lỗi kết nối khi bóc tách");
-      setExistingResume({ ...existingResume, parse_status: "failed" });
+      setExistingResume((prev: any) => prev ? { ...prev, parse_status: "failed" } : null);
     } finally {
       setIsParsingResume(false);
+    }
+  };
+
+  const handleSaveAndParse = async () => {
+    if (!fullName.trim() || !email.trim()) {
+      setErrorMessage("Vui lòng điền họ tên và email hợp lệ.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+
+      const formData = new FormData();
+      formData.append("fullName", fullName.trim());
+      formData.append("email", email.trim().toLowerCase());
+      formData.append("phone", phone.trim());
+      formData.append("location", location.trim());
+      formData.append("skills", JSON.stringify(skills));
+      if (selectedFile) {
+        formData.append("resume", selectedFile);
+      }
+
+      const res = await fetch("/api/candidate/profile", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể lưu hồ sơ");
+      }
+
+      let newResumeId = null;
+      if (data.resume) {
+        setExistingResume(data.resume);
+        setSelectedFile(null);
+        newResumeId = data.resume.id;
+      }
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+
+      // Immediately trigger parsing
+      if (newResumeId) {
+        await handleParseMyResume(newResumeId);
+      } else if (existingResume?.id) {
+        await handleParseMyResume(existingResume.id);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Đã xảy ra lỗi khi lưu và bóc tách hồ sơ.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -97,6 +154,17 @@ export default function CandidateProfilePage() {
         }
         if (data.resume) {
           setExistingResume(data.resume);
+        }
+        // Load persisted skills from database / resume
+        if (data.skills && Array.isArray(data.skills) && data.skills.length > 0) {
+          setSkills(data.skills);
+        } else if (data.resume?.parsed_data?.skills) {
+          const extracted = data.resume.parsed_data.skills
+            .map((s: any) => (typeof s === "string" ? s : s?.name))
+            .filter(Boolean);
+          if (extracted.length > 0) {
+            setSkills(extracted);
+          }
         }
       }
     } catch (err) {
@@ -148,6 +216,7 @@ export default function CandidateProfilePage() {
       formData.append("email", email.trim().toLowerCase());
       formData.append("phone", phone.trim());
       formData.append("location", location.trim());
+      formData.append("skills", JSON.stringify(skills));
       if (selectedFile) {
         formData.append("resume", selectedFile);
       }
@@ -247,7 +316,55 @@ export default function CandidateProfilePage() {
             Tệp CV này sẽ được lưu trữ an toàn trong kho bảo mật và tự động liên kết khi bạn ứng tuyển.
           </CardDescription>
 
-          {existingResume ? (
+          {/* 1. If a new file is selected, show immediate active upload card */}
+          {selectedFile ? (
+            <div className="space-y-3">
+              <div className="p-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-[#BFDBFE] text-[#1D4ED8] flex items-center justify-center shrink-0 shadow-xs">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs sm:text-sm text-[#1E3A8A] block truncate max-w-[220px] sm:max-w-xs">
+                        {selectedFile.name}
+                      </span>
+                      <Badge variant="accent" size="sm">Mới chọn (Chưa lưu)</Badge>
+                    </div>
+                    <span className="text-[11px] text-[#475569]">
+                      {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB • Tệp đã sẵn sàng tải lên
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    loading={isSubmitting || isParsingResume}
+                    onClick={handleSaveAndParse}
+                    className="bg-[#0F766E] hover:bg-[#0D655E] text-white"
+                  >
+                    Lưu & Bóc Tách Ngay
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                    className="text-[#DC2626] hover:bg-red-50 text-xs"
+                  >
+                    Hủy
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] italic">
+                * Mẹo: Bấm <strong>&quot;Lưu &amp; Bóc Tách Ngay&quot;</strong> để hệ thống tự động tải CV lên Supabase và trích xuất kỹ năng vào hồ sơ của bạn.
+              </p>
+            </div>
+          ) : existingResume ? (
+            /* 2. Stored CV card */
             <div className="space-y-2">
               <div className="p-3.5 bg-[#F0FDFA] border border-[#CCFBF1] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -285,7 +402,7 @@ export default function CandidateProfilePage() {
                       variant="primary"
                       size="sm"
                       loading={isParsingResume}
-                      onClick={handleParseMyResume}
+                      onClick={() => handleParseMyResume()}
                     >
                       Bóc Tách CV
                     </Button>
@@ -296,7 +413,7 @@ export default function CandidateProfilePage() {
                       variant="outline"
                       size="sm"
                       loading={isParsingResume}
-                      onClick={handleParseMyResume}
+                      onClick={() => handleParseMyResume()}
                     >
                       Bóc Tách Lại
                     </Button>
@@ -307,7 +424,7 @@ export default function CandidateProfilePage() {
                       variant="primary"
                       size="sm"
                       loading={isParsingResume}
-                      onClick={handleParseMyResume}
+                      onClick={() => handleParseMyResume()}
                     >
                       Thử Lại
                     </Button>
@@ -331,6 +448,7 @@ export default function CandidateProfilePage() {
               )}
             </div>
           ) : (
+            /* 3. Empty CV upload box */
             <div className="p-6 border-2 border-dashed border-[#E5E5E0] rounded-xl text-center space-y-2 bg-[#FAFAF8]">
               <UploadCloud size={28} className="mx-auto text-[#9E9E98]" />
               <p className="text-xs text-[#6B6B66] font-medium">Bạn chưa tải CV lên</p>
@@ -345,19 +463,6 @@ export default function CandidateProfilePage() {
                   className="hidden"
                 />
               </label>
-            </div>
-          )}
-
-          {selectedFile && (
-            <div className="p-2.5 rounded-lg bg-[#EFF6FF] border border-[#DBEAFE] text-xs text-[#1D4ED8] flex items-center justify-between">
-              <span className="truncate">Tệp đã chọn: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
-              <button
-                type="button"
-                onClick={() => setSelectedFile(null)}
-                className="text-[#DC2626] hover:underline text-[11px] font-semibold"
-              >
-                Hủy
-              </button>
             </div>
           )}
         </Card>

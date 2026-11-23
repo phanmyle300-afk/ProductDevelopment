@@ -85,10 +85,15 @@ export async function GET(
     }
 
     // 4. Fetch applications for this candidate
-    const { data: applications } = await supabase
+    const { data: applications, error: appErr } = await supabase
       .from("applications")
-      .select("id, job_id, resume_id, current_stage, created_at")
-      .eq("candidate_id", candidateId);
+      .select("id, job_id, resume_id, current_stage, applied_at")
+      .eq("candidate_id", candidateId)
+      .order("applied_at", { ascending: false });
+
+    if (appErr) {
+      console.error("Lỗi nạp đơn ứng tuyển của candidate:", appErr);
+    }
 
     const latestApp = applications && applications.length > 0 ? applications[0] : null;
 
@@ -112,7 +117,9 @@ export async function GET(
         .eq("id", latestApp.resume_id)
         .maybeSingle();
       resume = resumeData;
-    } else {
+    }
+
+    if (!resume || resume.parse_status !== "parsed") {
       const { data: r2 } = await supabase
         .from("resumes")
         .select("*")
@@ -120,7 +127,9 @@ export async function GET(
         .order("id", { ascending: false })
         .limit(1)
         .maybeSingle();
-      resume = r2;
+      if (r2) {
+        resume = r2;
+      }
     }
 
     // Extract parsed data

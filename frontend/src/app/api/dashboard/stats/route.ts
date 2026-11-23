@@ -9,7 +9,7 @@ export async function GET() {
     const [jobsRes, candRes, appsRes] = await Promise.all([
       supabase.from("jobs").select("id, title, department, location, status, created_at").order("created_at", { ascending: false }),
       supabase.from("candidates").select("id", { count: "exact", head: true }),
-      supabase.from("applications").select("id, current_stage, created_at, candidate_id, job_id, candidates(full_name), jobs(title)").order("created_at", { ascending: false }),
+      supabase.from("applications").select("id, current_stage, applied_at, candidate_id, job_id, candidates(full_name), jobs(title)").order("applied_at", { ascending: false }),
     ]);
 
     const jobs = jobsRes.data || [];

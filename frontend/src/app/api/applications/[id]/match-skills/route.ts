@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyServerSession } from "@/lib/auth-guard";
+import { verifyServerSession, canAccessApplication } from "@/lib/auth-guard";
 import {
   performSkillMatch,
   SkillCriterion,
@@ -46,10 +46,27 @@ export async function GET(
       return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
     }
 
+    // STRICT GUARD: Candidates must NEVER access internal AI match results
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không được phép truy cập kết quả đánh giá kỹ năng nội bộ." },
+        { status: 403 }
+      );
+    }
+
+    // Company isolation check
+    const accessCheck = await canAccessApplication(supabase, auth, applicationId);
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        { error: accessCheck.reason || "Bạn không có quyền truy cập hồ sơ của công ty khác." },
+        { status: 403 }
+      );
+    }
+
     // 1. Fetch application info
     const { data: app, error: appErr } = await supabase
       .from("applications")
-      .select("id, candidate_id, job_id, resume_id, created_at")
+      .select("id, candidate_id, job_id, resume_id, applied_at")
       .eq("id", applicationId)
       .single();
 
@@ -94,6 +111,88 @@ export async function GET(
       } catch {}
     }
 
+    // Deterministic snapshot rebuild for UI consistency
+    if (!snapshotData && app.job_id) {
+      try {
+        let resumeId = app.resume_id;
+        let resume = null;
+        if (resumeId) {
+          const { data: r } = await supabase
+            .from("resumes")
+            .select("id, parse_status, raw_text, file_name")
+            .eq("id", resumeId)
+            .maybeSingle();
+          resume = r;
+        }
+        if (!resume || resume.parse_status !== "parsed") {
+          const { data: pr } = await supabase
+            .from("resumes")
+            .select("id, parse_status, raw_text, file_name")
+            .eq("candidate_id", app.candidate_id)
+            .eq("parse_status", "parsed")
+            .order("id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (pr) resume = pr;
+        }
+
+        if (resume) {
+          let parsedData = (resume as any).parsed_data || null;
+          let cleanRawText = resume.raw_text || "";
+          if (!parsedData && cleanRawText) {
+            const extracted = extractParsedDataFromRawText(cleanRawText);
+            parsedData = extracted.parsedData;
+            cleanRawText = extracted.cleanText;
+          }
+          const candidateSkills = parsedData?.skills || [];
+          const { data: jobSkillsData } = await supabase
+            .from("job_skills")
+            .select("id, skill_id, is_required, category, skills(id, name)")
+            .eq("job_id", app.job_id);
+
+          const criteriaList: SkillCriterion[] = [];
+          if (jobSkillsData) {
+            for (const item of jobSkillsData) {
+              const name = (item.skills as any)?.name || item.category;
+              if (name) {
+                criteriaList.push({
+                  name,
+                  is_required: item.is_required !== false,
+                  category: item.category || "Technical",
+                });
+              }
+            }
+          }
+
+          const { data: aliasesData } = await supabase
+            .from("skill_aliases")
+            .select("alias, skill_id, skills(name)");
+
+          const dbAliases: Record<string, string> = {};
+          if (aliasesData) {
+            for (const a of aliasesData) {
+              const canonical = (a.skills as any)?.name;
+              if (canonical && a.alias) {
+                dbAliases[a.alias.toLowerCase().trim()] = canonical.toLowerCase().trim();
+              }
+            }
+          }
+
+          snapshotData = performSkillMatch({
+            applicationId,
+            resumeId: resume.id,
+            jobId: app.job_id,
+            jobCriteria: criteriaList,
+            candidateSkills,
+            rawCvText: cleanRawText,
+            dbAliases,
+          });
+        }
+      } catch (e) {
+        console.error("Lỗi dựng snapshot chi tiết:", e);
+      }
+    }
+
     return NextResponse.json({
       has_match: true,
       match_id: latest.id,
@@ -126,6 +225,23 @@ export async function POST(
       return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
     }
 
+    // STRICT GUARD: Candidates must NEVER access internal AI match results
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không được phép truy cập kết quả đánh giá kỹ năng nội bộ." },
+        { status: 403 }
+      );
+    }
+
+    // Company isolation check
+    const accessCheck = await canAccessApplication(supabase, auth, applicationId);
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        { error: accessCheck.reason || "Bạn không có quyền truy cập hồ sơ của công ty khác." },
+        { status: 403 }
+      );
+    }
+
     // 2. Fetch Application record
     const { data: application, error: appErr } = await supabase
       .from("applications")
@@ -137,24 +253,48 @@ export async function POST(
       return NextResponse.json({ error: "Đơn ứng tuyển không tồn tại." }, { status: 404 });
     }
 
-    const { job_id: jobId, resume_id: resumeId, candidate_id: candidateId } = application;
+    let { job_id: jobId, resume_id: resumeId, candidate_id: candidateId } = application;
 
-    if (!resumeId) {
+    // 3. Fetch Resume and verify parsing status with smart fallback
+    let resume: any = null;
+
+    if (resumeId) {
+      const { data: resData } = await supabase
+        .from("resumes")
+        .select("id, parse_status, raw_text, file_name")
+        .eq("id", resumeId)
+        .maybeSingle();
+      resume = resData;
+    }
+
+    // Smart Fallback: If application has no resume or resume is unparsed,
+    // look for a parsed resume from this candidate
+    if (!resume || resume.parse_status !== "parsed") {
+      const { data: parsedResume } = await supabase
+        .from("resumes")
+        .select("id, parse_status, raw_text, file_name")
+        .eq("candidate_id", candidateId)
+        .eq("parse_status", "parsed")
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (parsedResume) {
+        resume = parsedResume;
+        resumeId = parsedResume.id;
+        // Auto-link this parsed resume to the application
+        await supabase
+          .from("applications")
+          .update({ resume_id: parsedResume.id })
+          .eq("id", applicationId);
+      }
+    }
+
+    if (!resume) {
       return NextResponse.json(
         { error: "Đơn ứng tuyển này chưa có tệp CV được đính kèm." },
         { status: 400 }
       );
-    }
-
-    // 3. Fetch Resume and verify parsing status
-    const { data: resume, error: resErr } = await supabase
-      .from("resumes")
-      .select("id, parse_status, raw_text, file_name")
-      .eq("id", resumeId)
-      .single();
-
-    if (resErr || !resume) {
-      return NextResponse.json({ error: "Không tìm thấy tệp CV liên kết." }, { status: 404 });
     }
 
     if (resume.parse_status !== "parsed") {
@@ -239,8 +379,16 @@ export async function POST(
     });
 
     // 7. Persist Snapshot into Supabase `match_results`
-    // Attempt insert/update with new schema columns first
-    const serializedSnapshot = JSON.stringify(matchSnapshot);
+    // Recommendation must comply with CHECK constraint: 'strong_match', 'shortlist', 'review', 'low_match'
+    const validRec =
+      matchSnapshot.skills_score >= 80
+        ? "strong_match"
+        : matchSnapshot.skills_score >= 60
+        ? "shortlist"
+        : matchSnapshot.skills_score >= 40
+        ? "review"
+        : "low_match";
+
     const newRecordId = crypto.randomUUID();
 
     // Check if match_result already exists for this application
@@ -252,53 +400,25 @@ export async function POST(
 
     if (existingMatch) {
       // Update existing record
-      const updateAttempt = await supabase
+      await supabase
         .from("match_results")
         .update({
-          resume_id: resumeId,
           skills_score: matchSnapshot.skills_score,
-          skill_matches: matchSnapshot.all_matches,
-          criteria_snapshot: matchSnapshot.criteria_snapshot,
-          matching_version: matchSnapshot.matching_version,
-          recommendation: serializedSnapshot, // Dual storage fallback
+          total_score: matchSnapshot.skills_score,
+          recommendation: validRec,
         })
         .eq("id", existingMatch.id);
-
-      // If new columns don't exist yet, fallback to updating skills_score and recommendation
-      if (updateAttempt.error) {
-        await supabase
-          .from("match_results")
-          .update({
-            skills_score: matchSnapshot.skills_score,
-            recommendation: serializedSnapshot,
-          })
-          .eq("id", existingMatch.id);
-      }
     } else {
       // Insert new record
-      const insertAttempt = await supabase
+      await supabase
         .from("match_results")
         .insert({
           id: newRecordId,
           application_id: applicationId,
-          resume_id: resumeId,
           skills_score: matchSnapshot.skills_score,
-          skill_matches: matchSnapshot.all_matches,
-          criteria_snapshot: matchSnapshot.criteria_snapshot,
-          matching_version: matchSnapshot.matching_version,
-          recommendation: serializedSnapshot,
+          total_score: matchSnapshot.skills_score,
+          recommendation: validRec,
         });
-
-      if (insertAttempt.error) {
-        await supabase
-          .from("match_results")
-          .insert({
-            id: newRecordId,
-            application_id: applicationId,
-            skills_score: matchSnapshot.skills_score,
-            recommendation: serializedSnapshot,
-          });
-      }
     }
 
     return NextResponse.json({

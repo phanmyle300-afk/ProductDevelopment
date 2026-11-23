@@ -442,6 +442,33 @@ def parse_resume(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     }
 
 
+class ParsedContactInfo:
+    def __init__(self, data: Dict[str, Any]):
+        self.full_name = data.get("full_name")
+        self.email = data.get("email")
+        self.phone = data.get("phone")
+        self.location = data.get("location")
+        self.linkedin_url = data.get("linkedin_url")
+        self.portfolio_url = data.get("portfolio_url")
+        self.github_url = data.get("github_url")
+
+
+class ParsedCandidateResumeResult:
+    def __init__(self, raw_result: Dict[str, Any]):
+        self.raw_result = raw_result
+        self.parsed_data = raw_result.get("parsed_data") or {}
+        contact_dict = self.parsed_data.get("contact_info") or {}
+        self.contact_info = ParsedContactInfo(contact_dict)
+
+    def model_dump(self) -> Dict[str, Any]:
+        return self.parsed_data
+
+
+async def parse_candidate_resume(file_bytes: bytes, filename: str) -> ParsedCandidateResumeResult:
+    res = parse_resume(file_bytes, filename)
+    return ParsedCandidateResumeResult(res)
+
+
 if __name__ == "__main__":
     # Test CLI mode: python resume_parser.py <path_to_file>
     if len(sys.argv) > 1:

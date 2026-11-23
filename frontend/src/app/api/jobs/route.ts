@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession, getUserCompanyIds } from "@/lib/auth-guard";
 
 export async function GET() {
   try {
+    const { createClient } = await import("@/utils/supabase/server");
     const supabase = createClient();
 
     const { data: jobs, error } = await supabase
       .from("jobs")
-      .select("id, title, department, location, status, description, created_at")
+      .select("id, title, department, location, status, description, company_id, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -28,14 +29,27 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    const body = await request.json();
+    const { supabase, auth } = await verifyServerSession(request);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
+    }
 
-    const { title, department, location, description, status, salary_min, salary_max } = body;
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không có quyền đăng tin tuyển dụng." },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { title, department, location, description, status, salary_min, salary_max, company_id } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "Tiêu đề công việc là bắt buộc." }, { status: 400 });
     }
+
+    const companyIds = await getUserCompanyIds(supabase, auth.userId);
+    const assignedCompanyId = company_id || (companyIds.length > 0 ? companyIds[0] : null);
 
     const newJobId = crypto.randomUUID();
 
@@ -50,6 +64,7 @@ export async function POST(request: NextRequest) {
         description: description?.trim() || `Tuyển dụng vị trí ${title.trim()}`,
         salary_min: salary_min || null,
         salary_max: salary_max || null,
+        company_id: assignedCompanyId,
       })
       .select()
       .single();

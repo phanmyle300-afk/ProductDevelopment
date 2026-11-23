@@ -39,6 +39,8 @@ interface RealCandidateItem {
   parseStatus: string;
   parseStatusLabel: string;
   aiScreeningStatus: string;
+  matchScore?: number | null;
+  recommendation?: string | null;
   resumeId: string;
   resumeFileName: string;
   resumeFileSize: string;
@@ -323,9 +325,24 @@ export default function CandidatesPage() {
 
                     {/* AI Screening status */}
                     <td className="py-3 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7F7F5] text-[#6B6B66]">
-                        {cand.aiScreeningStatus}
-                      </span>
+                      {typeof cand.matchScore === "number" ? (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-xs ${
+                            cand.matchScore >= 70
+                              ? "bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0]"
+                              : cand.matchScore >= 40
+                              ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
+                              : "bg-[#FEE2E2] text-[#B91C1C] border border-[#FECACA]"
+                          }`}
+                        >
+                          <Sparkles size={11} />
+                          <span>{cand.matchScore}% Phù hợp</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F7F7F5] text-[#9E9E98]">
+                          Chưa sàng lọc
+                        </span>
+                      )}
                     </td>
 
                     {/* Actions: View Resume & Details */}

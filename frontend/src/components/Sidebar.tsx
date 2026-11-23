@@ -48,7 +48,7 @@ export function Sidebar() {
   }, [pathname]);
 
   const mainNav = [
-    { label: "Tổng quan", href: "/", icon: LayoutDashboard },
+    { label: "Tổng quan", href: "/recruiter/dashboard", icon: LayoutDashboard },
     { label: "Tin tuyển dụng", href: "/jobs", icon: Briefcase, count: counts.jobs > 0 ? counts.jobs : undefined },
     { label: "Hồ sơ ứng viên", href: "/candidates", icon: Users, count: counts.candidates > 0 ? counts.candidates : undefined },
     { label: "Quy trình Kanban", href: "/kanban", icon: Kanban },
@@ -61,7 +61,7 @@ export function Sidebar() {
     <aside className="w-60 h-screen bg-white border-r border-[#E5E5E0] flex flex-col shrink-0 fixed top-0 left-0 z-30 select-none">
       {/* Brand Header */}
       <div className="h-14 px-5 border-b border-[#E5E5E0] flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 text-decoration-none">
+        <Link href="/recruiter/dashboard" className="flex items-center gap-2.5 text-decoration-none">
           <div className="w-8 h-8 rounded-lg bg-[#0F766E] flex items-center justify-center text-white font-bold text-base shadow-sm">
             TS
           </div>
@@ -93,8 +93,8 @@ export function Sidebar() {
           {mainNav.map((item) => {
             const Icon = item.icon;
             const isActive =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === "/recruiter/dashboard"
+                ? pathname === "/recruiter/dashboard" || pathname === "/dashboard"
                 : pathname.startsWith(item.href);
 
             return (

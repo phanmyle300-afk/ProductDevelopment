@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession, getUserCompanyIds, extractParsedDataFromRawText } from "@/lib/auth-guard";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +11,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu email ứng viên" }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const { supabase, auth } = await verifyServerSession(req);
+
+    // If caller is authenticated as candidate, enforce that email matches their account
+    if (auth.isAuthenticated && auth.role === "candidate") {
+      if (auth.email && auth.email.toLowerCase() !== email.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Bạn không có quyền truy cập hồ sơ của ứng viên khác." },
+          { status: 403 }
+        );
+      }
+    }
 
     const { data: candidate, error: candErr } = await supabase
       .from("candidates")
@@ -23,19 +34,61 @@ export async function GET(req: NextRequest) {
     }
 
     if (!candidate) {
-      return NextResponse.json({ candidate: null, resume: null });
+      return NextResponse.json({ candidate: null, resume: null, skills: [] });
     }
 
-    // Get latest resume for candidate
-    const { data: resume } = await supabase
-      .from("resumes")
-      .select("id, file_name, file_type, file_size, file_url, parse_status, raw_text")
-      .eq("candidate_id", candidate.id)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // If recruiter, check that candidate has applied to recruiter's company jobs
+    if (auth.isAuthenticated && ["recruiter", "interviewer", "hiring_manager"].includes(auth.role)) {
+      const companyIds = await getUserCompanyIds(supabase, auth.userId);
+      if (companyIds.length > 0) {
+        const { data: appMatch } = await supabase
+          .from("applications")
+          .select("id, jobs(company_id)")
+          .eq("candidate_id", candidate.id);
 
-    return NextResponse.json({ candidate, resume });
+        const inPipeline = (appMatch || []).some(
+          (a: any) => a.jobs?.company_id && companyIds.includes(a.jobs.company_id)
+        );
+
+        if (!inPipeline) {
+          return NextResponse.json(
+            { error: "Bạn không có quyền xem hồ sơ ứng viên ngoài phạm vi tuyển dụng của công ty." },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // Get all resumes for candidate
+    const { data: allResumes } = await supabase
+      .from("resumes")
+      .select("id, file_name, file_type, file_size, file_url, parse_status, raw_text, uploaded_at")
+      .eq("candidate_id", candidate.id)
+      .order("uploaded_at", { ascending: false });
+
+    // Latest resume is the first one
+    const resume = allResumes && allResumes.length > 0 ? allResumes[0] : null;
+
+    let skills: string[] = [];
+    let parsedData: any = null;
+
+    if (resume?.raw_text) {
+      const extracted = extractParsedDataFromRawText(resume.raw_text);
+      parsedData = extracted.parsedData;
+    }
+
+    if (parsedData?.skills && Array.isArray(parsedData.skills)) {
+      skills = parsedData.skills
+        .map((s: any) => (typeof s === "string" ? s : s?.name))
+        .filter(Boolean);
+    }
+
+    return NextResponse.json({
+      candidate,
+      resume: resume ? { ...resume, parsed_data: parsedData } : null,
+      resumes: allResumes || [],
+      skills,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Lỗi nạp hồ sơ" }, { status: 500 });
   }
@@ -48,7 +101,18 @@ export async function POST(req: NextRequest) {
     const email = formData.get("email") as string;
     const phone = (formData.get("phone") as string) || "";
     const location = (formData.get("location") as string) || "";
+    const skillsRaw = formData.get("skills") as string | null;
     const resumeFile = formData.get("resume") as File | null;
+
+    let userSkills: string[] = [];
+    if (skillsRaw) {
+      try {
+        const parsed = JSON.parse(skillsRaw);
+        if (Array.isArray(parsed)) {
+          userSkills = parsed.map((s: any) => String(s).trim()).filter(Boolean);
+        }
+      } catch {}
+    }
 
     if (!fullName || !email) {
       return NextResponse.json(
@@ -103,7 +167,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Upload resume if provided
-    let resumeRecord = null;
+    let resumeRecord: any = null;
     if (resumeFile && resumeFile.size > 0) {
       const allowedExts = [".pdf", ".docx"];
       const lowerName = resumeFile.name.toLowerCase();
@@ -156,11 +220,58 @@ export async function POST(req: NextRequest) {
           file_size: resumeFile.size,
           parse_status: "uploaded",
         })
-        .select("id, file_name, file_type, file_size, file_url, parse_status, created_at")
+        .select("id, file_name, file_type, file_size, file_url, parse_status, uploaded_at")
         .single();
 
-      if (!resErr) {
-        resumeRecord = resData;
+      if (resErr) {
+        console.error("Lỗi tạo bản ghi resumes:", resErr);
+        return NextResponse.json(
+          { error: `Lỗi ghi nhận hồ sơ CV: ${resErr.message}` },
+          { status: 500 }
+        );
+      }
+
+      resumeRecord = resData;
+    }
+
+    // 3. Persist updated skills to latest resume if available
+    if (userSkills.length > 0) {
+      if (resumeRecord) {
+        const initParsedData = {
+          skills: userSkills.map((name) => ({ name })),
+        };
+        const rawTextWithMarker = `<!-- TS_PARSED_DATA_START -->\n${JSON.stringify(initParsedData)}\n<!-- TS_PARSED_DATA_END -->\n`;
+        await supabase
+          .from("resumes")
+          .update({ raw_text: rawTextWithMarker })
+          .eq("id", resumeRecord.id);
+        resumeRecord.parsed_data = initParsedData;
+      } else {
+        const { data: latestResume } = await supabase
+          .from("resumes")
+          .select("id, file_name, file_type, file_size, file_url, parse_status, raw_text")
+          .eq("candidate_id", candidateId)
+          .order("id", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestResume) {
+          const extracted = extractParsedDataFromRawText(latestResume.raw_text);
+          const existingParsed = extracted.parsedData || {};
+          const updatedParsed = {
+            ...existingParsed,
+            skills: userSkills.map((name) => ({ name })),
+          };
+          const cleanText = extracted.cleanText || "";
+          const rawTextWithMarker = `<!-- TS_PARSED_DATA_START -->\n${JSON.stringify(updatedParsed)}\n<!-- TS_PARSED_DATA_END -->\n${cleanText}`;
+
+          await supabase
+            .from("resumes")
+            .update({ raw_text: rawTextWithMarker })
+            .eq("id", latestResume.id);
+
+          resumeRecord = { ...latestResume, raw_text: rawTextWithMarker, parsed_data: updatedParsed };
+        }
       }
     }
 
@@ -174,6 +285,7 @@ export async function POST(req: NextRequest) {
         location,
       },
       resume: resumeRecord,
+      skills: userSkills,
     });
   } catch (err: any) {
     return NextResponse.json(
