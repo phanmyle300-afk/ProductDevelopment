@@ -1,24 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyServerSession, getUserCompanyIds } from "@/lib/auth-guard";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { createClient } = await import("@/utils/supabase/server");
-    const supabase = createClient();
+    const { supabase, auth } = await verifyServerSession(request);
 
-    const { data: jobs, error } = await supabase
+    // If caller is an authenticated Recruiter / Admin, return all jobs for their company
+    if (auth.isAuthenticated && ["recruiter", "admin", "interviewer", "hiring_manager"].includes(auth.role)) {
+      const companyIds = await getUserCompanyIds(supabase, auth.userId);
+      let query = supabase
+        .from("jobs")
+        .select("id, title, department, location, status, description, created_at")
+        .order("created_at", { ascending: false });
+
+      if (companyIds.length > 0) {
+        query = query.in("company_id", companyIds);
+      }
+
+      const { data: jobs, error } = await query;
+      if (error) {
+        return NextResponse.json(
+          { error: `Lỗi truy vấn tin tuyển dụng: ${error.message}` },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ jobs: jobs || [] });
+    }
+
+    // Public / Candidate view: Strictly filter status = 'open' and omit company_id
+    const { data: openJobs, error: publicError } = await supabase
       .from("jobs")
-      .select("id, title, department, location, status, description, company_id, created_at")
+      .select("id, title, department, location, status, description, created_at")
+      .eq("status", "open")
       .order("created_at", { ascending: false });
 
-    if (error) {
+    if (publicError) {
       return NextResponse.json(
-        { error: `Lỗi truy vấn tin tuyển dụng: ${error.message}` },
+        { error: `Lỗi truy vấn tin tuyển dụng: ${publicError.message}` },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ jobs: jobs || [] });
+    return NextResponse.json({ jobs: openJobs || [] });
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "Không thể tải danh sách tin tuyển dụng" },

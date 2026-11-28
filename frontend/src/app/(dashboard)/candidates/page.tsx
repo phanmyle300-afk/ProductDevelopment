@@ -21,6 +21,7 @@ import {
   Phone,
   CheckCircle2,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -130,37 +131,30 @@ export default function CandidatesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E5E0]">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
-            Quản Lý Hồ Sơ Ứng Viên (Candidate Management)
-          </h1>
-          <p className="text-xs text-[#6B6B66] mt-1">
-            Danh sách ứng viên thực tế được lưu trữ trong CSDL Supabase, liên kết với các vị trí tuyển dụng.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchData}
-            loading={isLoading}
-            className="flex items-center gap-1.5 bg-white"
-          >
-            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
-            <span>Làm mới</span>
-          </Button>
-
-          <Link href="/candidates/upload">
-            <Button variant="primary" size="sm" className="flex items-center gap-1.5 shadow-sm">
-              <Upload size={14} />
-              <span>Thêm ứng viên & Tải CV</span>
+      {/* Page Header */}
+      <PageHeader
+        title="Quản Lý Hồ Sơ Ứng Viên"
+        description="Danh sách ứng viên thực tế từ Supabase, đối chiếu kỹ năng và điểm tương thích."
+        badge={
+          <Badge variant="neutral" size="sm">
+            {candidates.length} ứng viên
+          </Badge>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchData}
+              loading={isLoading}
+              className="bg-white"
+            >
+              <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+              <span>Làm mới</span>
             </Button>
-          </Link>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Error Alert */}
       {error && (
@@ -245,16 +239,8 @@ export default function CandidatesPage() {
               Chưa có hồ sơ ứng viên nào
             </h3>
             <p className="text-xs text-[#6B6B66] mt-1 max-w-sm mx-auto">
-              Chưa có ứng viên nào ứng tuyển hoặc được tải lên cho vị trí này. Hãy thêm ứng viên đầu tiên.
+              Chưa có ứng viên nào ứng tuyển cho vị trí này. Khi ứng viên nộp hồ sơ, danh sách sẽ hiển thị tại đây.
             </p>
-            <div className="mt-4">
-              <Link href="/candidates/upload">
-                <Button variant="primary" size="sm" className="inline-flex items-center gap-1.5">
-                  <Upload size={14} />
-                  <span>Thêm ứng viên & Tải CV</span>
-                </Button>
-              </Link>
-            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -327,13 +313,12 @@ export default function CandidatesPage() {
                     <td className="py-3 px-4">
                       {typeof cand.matchScore === "number" ? (
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-xs ${
-                            cand.matchScore >= 70
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-xs ${cand.matchScore >= 70
                               ? "bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0]"
                               : cand.matchScore >= 40
-                              ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
-                              : "bg-[#FEE2E2] text-[#B91C1C] border border-[#FECACA]"
-                          }`}
+                                ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
+                                : "bg-[#FEE2E2] text-[#B91C1C] border border-[#FECACA]"
+                            }`}
                         >
                           <Sparkles size={11} />
                           <span>{cand.matchScore}% Phù hợp</span>

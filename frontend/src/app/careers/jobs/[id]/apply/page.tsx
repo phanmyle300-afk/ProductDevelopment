@@ -33,6 +33,7 @@ export default function CandidateApplyPage() {
   const [jobTitle, setJobTitle] = useState("Vị trí tuyển dụng");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [hasSessionEmail, setHasSessionEmail] = useState(false);
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -46,7 +47,10 @@ export default function CandidateApplyPage() {
     const session = getUserSession();
     if (session) {
       if (session.fullName) setFullName(session.fullName);
-      if (session.email) setEmail(session.email);
+      if (session.email) {
+        setEmail(session.email);
+        setHasSessionEmail(true);
+      }
     }
 
     async function loadJob() {
@@ -216,8 +220,11 @@ export default function CandidateApplyPage() {
                     type="email"
                     placeholder="email@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => !hasSessionEmail && setEmail(e.target.value)}
                     icon={<Mail size={15} />}
+                    readOnly={hasSessionEmail}
+                    helperText={hasSessionEmail ? "Email đăng nhập đã được xác thực (chỉ đọc)" : undefined}
+                    className={hasSessionEmail ? "bg-[#F7F7F5] cursor-not-allowed" : ""}
                     required
                   />
                   <Input

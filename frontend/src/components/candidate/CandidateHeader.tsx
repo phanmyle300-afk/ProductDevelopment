@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getUserSession, clearUserSession, UserSession } from "@/lib/auth-storage";
+import { createClient } from "@/utils/supabase/client";
 
 export function CandidateHeader() {
   const pathname = usePathname();
@@ -27,18 +28,24 @@ export function CandidateHeader() {
     setSession(getUserSession());
   }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
     clearUserSession();
     setSession(null);
-    router.push("/careers/auth");
+    router.push("/login");
   };
 
   const isLoggedIn = !!session;
 
   const navLinks = [
     { label: "Khám Phá Việc Làm", href: "/careers/jobs" },
-    { label: "Đơn Ứng Tuyển Của Tôi", href: "/careers/my-applications" },
-    { label: "Hồ Sơ Năng Lực", href: "/careers/profile" },
+    { label: "Đơn Ứng Tuyển Của Tôi", href: "/candidate/applications" },
+    { label: "Hồ Sơ Năng Lực", href: "/candidate/profile" },
   ];
 
   const initials = session?.fullName
@@ -94,22 +101,12 @@ export function CandidateHeader() {
           })}
         </nav>
 
-        {/* Right Actions: Notifications & Candidate Profile */}
+        {/* Right Actions: Candidate Profile & Logout */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/careers/notifications"
-            className="relative w-9 h-9 rounded-lg border border-[#E5E5E0] bg-white text-[#6B6B66] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] flex items-center justify-center transition-colors"
-            title="Thông báo tuyển dụng"
-          >
-            <Bell size={17} />
-          </Link>
-
-          <div className="h-5 w-px bg-[#E5E5E0]" />
-
           {isLoggedIn ? (
             <div className="flex items-center gap-2">
               <Link
-                href="/careers/profile"
+                href="/candidate/profile"
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-lg border border-[#E5E5E0] hover:border-[#D4D4CE] transition-colors"
               >
                 <div className="w-7 h-7 rounded-full bg-[#F0FDFA] text-[#0F766E] font-bold text-xs flex items-center justify-center border border-[#CCFBF1]">
@@ -131,7 +128,7 @@ export function CandidateHeader() {
               </button>
             </div>
           ) : (
-            <Link href="/careers/auth">
+            <Link href="/login">
               <Button variant="primary" size="sm">
                 Đăng Nhập / Đăng Ký
               </Button>
@@ -168,7 +165,7 @@ export function CandidateHeader() {
             {isLoggedIn ? (
               <div className="flex items-center justify-between">
                 <Link
-                  href="/careers/profile"
+                  href="/candidate/profile"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-2 text-xs font-semibold text-[#1A1A1A]"
                 >
@@ -190,7 +187,7 @@ export function CandidateHeader() {
               </div>
             ) : (
               <Link
-                href="/careers/auth"
+                href="/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block text-center w-full py-2 bg-[#0F766E] text-white rounded-lg text-xs font-bold"
               >

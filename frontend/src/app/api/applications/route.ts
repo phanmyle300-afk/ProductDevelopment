@@ -8,6 +8,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Yêu cầu đăng nhập.", applications: [] }, { status: 401 });
     }
 
+    // Candidate is strictly blocked from calling internal recruiter applications endpoint
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không có quyền truy cập danh sách đơn ứng tuyển nội bộ.", applications: [] },
+        { status: 403 }
+      );
+    }
+
     let query = supabase
       .from("applications")
       .select(`
@@ -39,21 +47,6 @@ export async function GET(request: NextRequest) {
         )
       `)
       .order("applied_at", { ascending: false });
-
-    // If candidate, filter by candidate_id
-    if (auth.role === "candidate") {
-      const { data: cand } = await supabase
-        .from("candidates")
-        .select("id")
-        .or(`user_id.eq.${auth.userId}${auth.email ? `,email.eq.${auth.email}` : ""}`)
-        .maybeSingle();
-
-      if (!cand) {
-        return NextResponse.json({ applications: [] });
-      }
-
-      query = query.eq("candidate_id", cand.id);
-    }
 
     const { data: rawApps, error } = await query;
 

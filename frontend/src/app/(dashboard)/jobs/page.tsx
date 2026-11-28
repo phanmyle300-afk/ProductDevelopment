@@ -18,6 +18,7 @@ import {
   X,
   Building,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -151,52 +152,26 @@ export default function JobsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E5E0]">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight">
-            Quản Lý Tin Tuyển Dụng (Requisitions)
-          </h1>
-          <p className="text-xs text-[#6B6B66] mt-1">
-            Thiết lập tiêu chuẩn JD, phân tách kỹ năng bắt buộc và điều phối hồ sơ theo từng vị trí.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="md"
-          icon={<Plus size={16} />}
-          onClick={() => setShowCreateModal(true)}
-        >
-          Tạo Tin Tuyển Dụng
-        </Button>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card padding="sm">
-          <span className="text-xs text-[#6B6B66]">Tổng vị trí</span>
-          <div className="text-xl font-bold text-[#1A1A1A] mt-1">{jobsList.length}</div>
-        </Card>
-        <Card padding="sm">
-          <span className="text-xs text-[#6B6B66]">Đang mở nhận hồ sơ</span>
-          <div className="text-xl font-bold text-[#0F766E] mt-1">
-            {jobsList.filter((j) => j.status === "open").length}
-          </div>
-        </Card>
-        <Card padding="sm">
-          <span className="text-xs text-[#6B6B66]">Tổng ứng viên nộp</span>
-          <div className="text-xl font-bold text-[#1A1A1A] mt-1">
-            {jobsList.reduce((acc, j) => acc + j.applicants, 0)}
-          </div>
-        </Card>
-        <Card padding="sm">
-          <span className="text-xs text-[#6B6B66]">Đã sàng lọc qua AI</span>
-          <div className="text-xl font-bold text-[#15803D] mt-1">
-            {jobsList.reduce((acc, j) => acc + j.screened, 0)}
-          </div>
-        </Card>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Quản Lý Tin Tuyển Dụng"
+        description="Thiết lập tiêu chuẩn JD, phân tách kỹ năng bắt buộc và điều phối hồ sơ theo từng vị trí."
+        badge={
+          <Badge variant="neutral" size="sm">
+            {jobsList.length} vị trí
+          </Badge>
+        }
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Tạo Tin Tuyển Dụng
+          </Button>
+        }
+      />
 
       {/* Search & Filters */}
       <Card padding="sm" className="flex flex-col sm:flex-row items-center gap-3">

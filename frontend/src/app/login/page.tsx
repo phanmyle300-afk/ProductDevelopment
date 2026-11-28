@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Lock,
   Mail,
   ShieldCheck,
   ArrowRight,
@@ -18,8 +17,37 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { createClient } from "@/utils/supabase/client";
 import { saveUserSession, getRoleRedirectPath, UserRole } from "@/lib/auth-storage";
 
-export default function LoginPage() {
+/**
+ * Validate redirect path to prevent Open Redirect attacks.
+ * Strictly enforces that target is an internal relative URL.
+ */
+function getSafeRedirectUrl(target: string | null, role: UserRole): string {
+  if (!target) return getRoleRedirectPath(role);
+
+  // Must start with '/' and not '//', and cannot contain protocol schemes
+  const isSafeRelative =
+    target.startsWith("/") &&
+    !target.startsWith("//") &&
+    !target.includes(":") &&
+    !target.includes("\\");
+
+  if (!isSafeRelative) {
+    return getRoleRedirectPath(role);
+  }
+
+  // Cross-role safety check
+  if (role === "candidate" && (target.startsWith("/dashboard") || target.startsWith("/kanban") || target.startsWith("/jobs") || target.startsWith("/candidates") || target.startsWith("/outbox"))) {
+    return getRoleRedirectPath(role);
+  }
+
+  return target;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +56,8 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submit
+
     if (!email.trim() || !password) {
       setError("Vui lòng nhập đầy đủ Email và Mật khẩu.");
       return;
@@ -66,33 +96,28 @@ export default function LoginPage() {
 
       const user = data.user;
 
-      // 2. Resolve Role from Trusted Sources (JWT metadata -> public.users -> public.candidates)
+      // 2. Resolve Role from Server DB (company_members -> users -> candidates)
       let resolvedRole: UserRole = "candidate";
 
-      // Source A: user_metadata from Supabase Auth
-      if (user.user_metadata?.role) {
-        resolvedRole = user.user_metadata.role as UserRole;
+      const { data: memberRecord } = await supabase
+        .from("company_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (memberRecord?.role && ["recruiter", "admin", "hiring_manager", "interviewer"].includes(memberRecord.role)) {
+        resolvedRole = memberRecord.role as UserRole;
       } else {
-        // Source B: Query public.users table
         const { data: userRecord } = await supabase
           .from("users")
           .select("role")
           .eq("id", user.id)
           .maybeSingle();
 
-        if (userRecord?.role) {
+        if (userRecord?.role && ["recruiter", "admin", "hiring_manager", "interviewer"].includes(userRecord.role)) {
           resolvedRole = userRecord.role as UserRole;
         } else {
-          // Source C: Check if registered as candidate
-          const { data: candidateRecord } = await supabase
-            .from("candidates")
-            .select("id")
-            .or(`user_id.eq.${user.id},email.eq.${user.email}`)
-            .maybeSingle();
-
-          if (candidateRecord) {
-            resolvedRole = "candidate";
-          }
+          resolvedRole = "candidate";
         }
       }
 
@@ -107,10 +132,10 @@ export default function LoginPage() {
         token: data.session?.access_token,
       });
 
-      // 4. Redirect based on role
-      const redirectPath = getRoleRedirectPath(resolvedRole);
+      // 4. Safe Redirect with Open Redirect Protection
+      const targetUrl = getSafeRedirectUrl(redirectParam, resolvedRole);
       setInfoMessage("Đăng nhập thành công! Đang chuyển hướng...");
-      router.push(redirectPath);
+      router.push(targetUrl);
     } catch (err: any) {
       console.error("Lỗi đăng nhập:", err);
       setError(err?.message || "Đã xảy ra lỗi không mong muốn trong quá trình đăng nhập.");
@@ -120,110 +145,116 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout subtitle="Nền tảng Quản trị Tuyển dụng và Sàng lọc Hồ sơ Thông minh bằng AI">
-      <AuthCard className="max-w-md">
-        <div className="mb-6 text-left">
-          <h2 className="text-xl font-bold text-[#1A1A1A] tracking-tight">
-            Đăng nhập tài khoản
-          </h2>
-          <p className="text-xs text-[#6B6B66] mt-1">
-            Chào mừng bạn quay lại. Nhập email và mật khẩu để tiếp tục.
-          </p>
+    <AuthCard className="max-w-md">
+      <div className="mb-6 text-left">
+        <h2 className="text-xl font-bold text-[#1A1A1A] tracking-tight">
+          Đăng nhập tài khoản
+        </h2>
+        <p className="text-xs text-[#6B6B66] mt-1">
+          Chào mừng bạn quay lại. Nhập email và mật khẩu để tiếp tục.
+        </p>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-[#FEF2F2] border border-[#FEE2E2] flex items-start gap-2.5 text-xs text-[#B91C1C]">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+          <span className="leading-snug">{error}</span>
         </div>
+      )}
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-[#FEF2F2] border border-[#FEE2E2] flex items-start gap-2.5 text-xs text-[#B91C1C]">
-            <AlertCircle size={15} className="shrink-0 mt-0.5" />
-            <span className="leading-snug">{error}</span>
-          </div>
-        )}
+      {infoMessage && (
+        <div className="mb-4 p-3 rounded-lg bg-[#F0FDF4] border border-[#DCFCE7] flex items-start gap-2.5 text-xs text-[#15803D]">
+          <CheckCircle2 size={15} className="shrink-0 mt-0.5" />
+          <span className="leading-snug">{infoMessage}</span>
+        </div>
+      )}
 
-        {infoMessage && (
-          <div className="mb-4 p-3 rounded-lg bg-[#F0FDF4] border border-[#DCFCE7] flex items-start gap-2.5 text-xs text-[#15803D]">
-            <CheckCircle2 size={15} className="shrink-0 mt-0.5" />
-            <span className="leading-snug">{infoMessage}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="text-left">
-            <label
-              htmlFor="login-email"
-              className="block text-xs font-semibold text-[#1A1A1A] mb-1.5"
-            >
-              Địa chỉ Email <span className="text-[#B91C1C]">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B6B66] pointer-events-none">
-                <Mail size={15} />
-              </div>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                className="w-full rounded-lg text-sm text-[#1A1A1A] bg-white border border-[#E5E5E0] pl-9 pr-3.5 py-2.5 placeholder:text-[#9E9E98] focus:outline-none focus:ring-1 focus:ring-[#0F766E] focus:border-[#0F766E] transition"
-              />
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="text-left">
+          <label
+            htmlFor="login-email"
+            className="block text-xs font-semibold text-[#1A1A1A] mb-1.5"
+          >
+            Địa chỉ Email <span className="text-[#B91C1C]">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B6B66] pointer-events-none">
+              <Mail size={15} />
             </div>
-          </div>
-
-          <div>
-            <PasswordInput
-              label="Mật khẩu"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu của bạn"
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              disabled={loading}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
               required
+              className="w-full rounded-lg text-sm text-[#1A1A1A] bg-white border border-[#E5E5E0] pl-9 pr-3.5 py-2.5 placeholder:text-[#9E9E98] focus:outline-none focus:ring-1 focus:ring-[#0F766E] focus:border-[#0F766E] transition disabled:bg-[#FAFAF8]"
             />
           </div>
-
-          <div className="flex items-center justify-between text-xs pt-0.5">
-            <label className="flex items-center gap-2 text-[#6B6B66] cursor-pointer">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="rounded border-[#E5E5E0] text-[#0F766E] focus:ring-[#0F766E]"
-              />
-              <span>Ghi nhớ phiên đăng nhập</span>
-            </label>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                alert("Vui lòng liên hệ quản trị viên hoặc sử dụng tính năng đặt lại mật khẩu qua email được liên kết.");
-              }}
-              className="text-[#0F766E] hover:underline font-medium"
-            >
-              Quên mật khẩu?
-            </a>
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full mt-2 font-semibold"
-            loading={loading}
-            icon={<ArrowRight size={16} />}
-            iconPosition="right"
-          >
-            Đăng nhập
-          </Button>
-        </form>
-
-        {/* Link to Register */}
-        <div className="mt-6 pt-5 border-t border-[#EFEFEA] text-center text-xs text-[#6B6B66]">
-          <span>Chưa có tài khoản? </span>
-          <Link
-            href="/register"
-            className="font-semibold text-[#0F766E] hover:underline"
-          >
-            Đăng ký tài khoản mới
-          </Link>
         </div>
-      </AuthCard>
+
+        <div>
+          <PasswordInput
+            label="Mật khẩu"
+            value={password}
+            disabled={loading}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Nhập mật khẩu của bạn"
+            required
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-xs pt-0.5">
+          <label className="flex items-center gap-2 text-[#6B6B66] cursor-pointer">
+            <input
+              type="checkbox"
+              defaultChecked
+              className="rounded border-[#E5E5E0] text-[#0F766E] focus:ring-[#0F766E]"
+            />
+            <span>Ghi nhớ phiên đăng nhập</span>
+          </label>
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full mt-2 font-semibold"
+          loading={loading}
+          icon={<ArrowRight size={16} />}
+          iconPosition="right"
+        >
+          {loading ? "Đang xác thực..." : "Đăng nhập"}
+        </Button>
+      </form>
+
+      {/* Link to Register */}
+      <div className="mt-6 pt-5 border-t border-[#EFEFEA] text-center text-xs text-[#6B6B66]">
+        <span>Chưa có tài khoản? </span>
+        <Link
+          href="/register"
+          className="font-semibold text-[#0F766E] hover:underline"
+        >
+          Đăng ký tài khoản mới
+        </Link>
+      </div>
+    </AuthCard>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <AuthLayout subtitle="Nền tảng Quản trị Tuyển dụng và Sàng lọc Hồ sơ Thông minh bằng AI">
+      <Suspense
+        fallback={
+          <AuthCard className="max-w-md text-center py-12 text-xs text-[#6B6B66]">
+            Đang tải biểu mẫu đăng nhập...
+          </AuthCard>
+        }
+      >
+        <LoginForm />
+      </Suspense>
 
       {/* Security Footer Notice */}
       <div className="mt-6 flex items-center gap-2 text-xs text-[#6B6B66]">

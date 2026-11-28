@@ -8,24 +8,28 @@ import {
   Briefcase,
   Users,
   Kanban,
-  Calendar,
-  BarChart3,
-  Settings,
+  Mail,
   ShieldCheck,
   Sparkles,
-  ExternalLink,
   LogOut,
+  X,
 } from "lucide-react";
 import { getUserSession, clearUserSession, UserSession } from "@/lib/auth-storage";
+import { createClient } from "@/utils/supabase/client";
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [session, setSession] = React.useState<UserSession | null>(null);
   const [counts, setCounts] = React.useState<{
     jobs: number;
     candidates: number;
-    interviews: number;
-  }>({ jobs: 0, candidates: 0, interviews: 0 });
+    drafts: number;
+  }>({ jobs: 0, candidates: 0, drafts: 0 });
 
   React.useEffect(() => {
     setSession(getUserSession());
@@ -38,7 +42,7 @@ export function Sidebar() {
           setCounts({
             jobs: data.jobs || 0,
             candidates: data.candidates || 0,
-            interviews: data.interviews || 0,
+            drafts: data.drafts || 0,
           });
         }
       } catch {}
@@ -47,44 +51,58 @@ export function Sidebar() {
     fetchCounts();
   }, [pathname]);
 
+  // Recruiter Navigation: Strictly 5 core items
   const mainNav = [
-    { label: "Tổng quan", href: "/recruiter/dashboard", icon: LayoutDashboard },
-    { label: "Tin tuyển dụng", href: "/jobs", icon: Briefcase, count: counts.jobs > 0 ? counts.jobs : undefined },
-    { label: "Hồ sơ ứng viên", href: "/candidates", icon: Users, count: counts.candidates > 0 ? counts.candidates : undefined },
-    { label: "Quy trình Kanban", href: "/kanban", icon: Kanban },
-    { label: "Lịch phỏng vấn", href: "/interviews", icon: Calendar, count: counts.interviews > 0 ? counts.interviews : undefined },
-    { label: "Báo cáo & Phân tích", href: "/analytics", icon: BarChart3 },
-    { label: "Cấu hình hệ thống", href: "/settings", icon: Settings },
+    { label: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Việc làm", href: "/jobs", icon: Briefcase, count: counts.jobs > 0 ? counts.jobs : undefined },
+    { label: "Ứng viên", href: "/candidates", icon: Users, count: counts.candidates > 0 ? counts.candidates : undefined },
+    { label: "Pipeline", href: "/kanban", icon: Kanban },
+    { label: "Email nháp", href: "/outbox", icon: Mail },
   ];
 
-  return (
-    <aside className="w-60 h-screen bg-white border-r border-[#E5E5E0] flex flex-col shrink-0 fixed top-0 left-0 z-30 select-none">
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-white select-none">
       {/* Brand Header */}
       <div className="h-14 px-5 border-b border-[#E5E5E0] flex items-center justify-between">
-        <Link href="/recruiter/dashboard" className="flex items-center gap-2.5 text-decoration-none">
-          <div className="w-8 h-8 rounded-lg bg-[#0F766E] flex items-center justify-center text-white font-bold text-base shadow-sm">
+        <Link
+          href="/dashboard"
+          onClick={onClose}
+          className="flex items-center gap-2.5 text-decoration-none"
+        >
+          <div className="w-8 h-8 rounded-lg bg-[#0F766E] flex items-center justify-center text-white font-bold text-sm shadow-xs">
             TS
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-sm text-[#1A1A1A] tracking-tight">
+              <span className="font-bold text-sm text-[#1A1A1A] tracking-tight">
                 TalentScout
               </span>
-              <span className="text-[10px] font-medium bg-[#F0FDFA] text-[#0F766E] px-1.5 py-0.5 rounded border border-[#CCFBF1]">
-                HR
+              <span className="text-[10px] font-semibold bg-[#F0FDFA] text-[#0F766E] px-1.5 py-0.5 rounded border border-[#CCFBF1]">
+                ATS
               </span>
             </div>
-            <p className="text-[11px] text-[#6B6B66] -mt-0.5 font-normal">
-              ATS Studio
+            <p className="text-[10px] text-[#6B6B66] -mt-0.5 font-normal">
+              Recruiter Studio
             </p>
           </div>
         </Link>
+
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-lg text-[#6B6B66] hover:text-[#1A1A1A] hover:bg-[#F7F7F5]"
+            title="Đóng menu"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation (5 Core Items) */}
       <div className="flex-1 py-4 px-3 overflow-y-auto">
         <div className="px-2 mb-2">
-          <span className="text-[11px] font-semibold text-[#9E9E98] uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-[#9E9E98] uppercase tracking-wider">
             Menu Quản Trị
           </span>
         </div>
@@ -93,23 +111,26 @@ export function Sidebar() {
           {mainNav.map((item) => {
             const Icon = item.icon;
             const isActive =
-              item.href === "/recruiter/dashboard"
-                ? pathname === "/recruiter/dashboard" || pathname === "/dashboard"
+              item.href === "/dashboard"
+                ? pathname === "/dashboard" || pathname === "/recruiter/dashboard"
+                : item.href === "/kanban"
+                ? pathname === "/kanban" || pathname === "/recruiter/pipeline"
                 : pathname.startsWith(item.href);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                onClick={onClose}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[#F0FDFA] text-[#0F766E] font-medium border-l-[3px] border-[#0F766E] pl-2.5"
+                    ? "bg-[#F0FDFA] text-[#0F766E] font-semibold border-l-[3px] border-[#0F766E] pl-2.5"
                     : "text-[#6B6B66] hover:bg-[#F7F7F5] hover:text-[#1A1A1A]"
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon
-                    size={17}
+                    size={16}
                     className={`shrink-0 ${
                       isActive ? "text-[#0F766E]" : "text-[#9E9E98]"
                     }`}
@@ -118,7 +139,7 @@ export function Sidebar() {
                 </div>
                 {item.count !== undefined && (
                   <span
-                    className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                       isActive
                         ? "bg-[#CCFBF1] text-[#0F766E]"
                         : "bg-[#F7F7F5] text-[#9E9E98]"
@@ -132,18 +153,18 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* AI & Compliance Box */}
+        {/* AI & Compliance Mini Badge */}
         <div className="mt-6 mx-1 p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E5E0]">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F766E] mb-1">
-            <Sparkles size={14} />
+            <Sparkles size={13} />
             <span>AI Screening v2.0</span>
           </div>
           <p className="text-[11px] text-[#6B6B66] leading-relaxed mb-2">
-            Đang hoạt động với cơ chế kiểm định EEOC 4/5th Rule & XAI Synthesis.
+            EEOC 4/5th Rule & Chuẩn hóa ESCO taxonomy.
           </p>
-          <div className="flex items-center gap-1 text-[11px] font-medium text-[#15803D]">
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-[#15803D]">
             <ShieldCheck size={13} />
-            <span>Zero-PII Mode Sẵn Sàng</span>
+            <span>Blind Screening Sẵn Sàng</span>
           </div>
         </div>
       </div>
@@ -151,8 +172,8 @@ export function Sidebar() {
       {/* Footer / User Profile */}
       <div className="p-3 border-t border-[#E5E5E0] bg-[#FAFAF8]">
         <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E5E5E0]">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#0F766E]/10 text-[#0F766E] font-semibold text-xs flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-[#0F766E]/10 text-[#0F766E] font-bold text-xs flex items-center justify-center shrink-0">
               {session?.fullName
                 ? session.fullName
                     .split(" ")
@@ -167,41 +188,51 @@ export function Sidebar() {
               <p className="text-xs font-semibold text-[#1A1A1A] truncate">
                 {session?.fullName || "Nhà tuyển dụng"}
               </p>
-              <p className="text-[11px] text-[#6B6B66] truncate">
+              <p className="text-[10px] text-[#6B6B66] truncate">
                 {session?.jobTitle || (session?.companyName ? session.companyName : "HR Recruiter")}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
-              {session?.role === "admin" ? "Admin" : "Recruiter"}
-            </span>
-            <button
-              onClick={() => {
-                clearUserSession();
-                window.location.href = "/login";
-              }}
-              className="p-1 rounded hover:bg-[#FEF2F2] text-[#9E9E98] hover:text-[#B91C1C] transition-colors"
-              title="Đăng xuất"
-            >
-              <LogOut size={13} />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2 px-1 flex items-center justify-between text-[11px] text-[#9E9E98]">
-          <span>TalentScout Core</span>
-          <a
-            href="http://127.0.0.1:8000/api/v1/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[#6B6B66] hover:text-[#0F766E]"
+          <button
+            onClick={async () => {
+              try {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+              } catch (err) {
+                console.error("Lỗi đăng xuất Supabase:", err);
+              }
+              clearUserSession();
+              window.location.href = "/login";
+            }}
+            className="p-1 rounded hover:bg-[#FEF2F2] text-[#9E9E98] hover:text-[#B91C1C] transition-colors shrink-0"
+            title="Đăng xuất"
           >
-            <span>API Docs</span>
-            <ExternalLink size={10} />
-          </a>
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden md:flex w-60 h-screen border-r border-[#E5E5E0] flex-col shrink-0 fixed top-0 left-0 z-30">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Backdrop & Sidebar */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+            onClick={onClose}
+          />
+          <div className="relative w-64 max-w-[80%] h-full bg-white shadow-xl z-10 flex flex-col">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

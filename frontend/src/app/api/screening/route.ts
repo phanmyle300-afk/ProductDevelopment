@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession } from "@/lib/auth-guard";
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const { supabase, auth } = await verifyServerSession(req);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập.", results: [] }, { status: 401 });
+    }
+
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không có quyền truy cập dữ liệu sàng lọc nội bộ.", results: [] },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const jobId = searchParams.get("jobId");
 

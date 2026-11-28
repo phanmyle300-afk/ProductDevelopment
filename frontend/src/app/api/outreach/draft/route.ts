@@ -123,8 +123,46 @@ export async function GET(request: NextRequest) {
     const applicationId = searchParams.get("applicationId");
     const stage = searchParams.get("stage") || "interview";
 
+    // If no applicationId is provided, list all drafts for the recruiter's company (for /outbox page)
     if (!applicationId) {
-      return NextResponse.json({ error: "Thiếu tham số applicationId." }, { status: 400 });
+      const { data: drafts, error: draftsErr } = await supabase
+        .from("email_outbox")
+        .select(`
+          id,
+          company_id,
+          application_id,
+          candidate_id,
+          blind_code,
+          stage,
+          email_type,
+          subject,
+          body,
+          metadata,
+          status,
+          created_at,
+          updated_at,
+          applications (
+            id,
+            current_stage,
+            jobs (
+              id,
+              title,
+              department
+            ),
+            candidates (
+              id,
+              full_name,
+              email
+            )
+          )
+        `)
+        .order("updated_at", { ascending: false });
+
+      if (draftsErr) {
+        return NextResponse.json({ error: draftsErr.message, drafts: [] }, { status: 500 });
+      }
+
+      return NextResponse.json({ drafts: drafts || [] });
     }
 
     // Company isolation & ownership check

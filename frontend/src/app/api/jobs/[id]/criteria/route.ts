@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyServerSession } from "@/lib/auth-guard";
+import { verifyServerSession, getUserCompanyIds } from "@/lib/auth-guard";
 
 // GET: Retrieve real job skill criteria (Required vs Preferred)
 export async function GET(
@@ -20,12 +20,33 @@ export async function GET(
     // 1. Fetch Job
     const { data: job, error: jobErr } = await supabase
       .from("jobs")
-      .select("id, title, department, description")
+      .select("id, title, department, description, company_id, status")
       .eq("id", jobId)
       .single();
 
     if (jobErr || !job) {
       return NextResponse.json({ error: "Không tìm thấy tin tuyển dụng này." }, { status: 404 });
+    }
+
+    // Recruiter / Hiring Team check: must belong to the job's company
+    if (["recruiter", "interviewer", "hiring_manager"].includes(auth.role)) {
+      const companyIds = await getUserCompanyIds(supabase, auth.userId);
+      if (job.company_id && !companyIds.includes(job.company_id)) {
+        return NextResponse.json(
+          { error: "Bạn không có quyền xem tiêu chí tuyển dụng của công ty khác." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Candidate check: only permitted if job is currently open
+    if (auth.role === "candidate") {
+      if (job.status !== "open") {
+        return NextResponse.json(
+          { error: "Tin tuyển dụng này đã đóng hoặc chưa mở tiếp nhận hồ sơ." },
+          { status: 403 }
+        );
+      }
     }
 
     // 2. Fetch Job Skills from job_skills joined with skills
@@ -54,6 +75,16 @@ export async function GET(
           preferredSkills.push(item);
         }
       }
+    }
+
+    if (auth.role === "candidate") {
+      return NextResponse.json({
+        job_id: jobId,
+        title: job.title,
+        required_skills: requiredSkills.map((s) => ({ name: s.name, category: s.category })),
+        preferred_skills: preferredSkills.map((s) => ({ name: s.name, category: s.category })),
+        total_criteria: requiredSkills.length + preferredSkills.length,
+      });
     }
 
     return NextResponse.json({

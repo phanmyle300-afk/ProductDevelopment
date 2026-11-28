@@ -17,6 +17,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface NotificationItem {
   id: string;
@@ -30,53 +31,7 @@ interface NotificationItem {
 
 export default function NotificationsPage() {
   const [filter, setFilter] = useState<string>("all");
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: "notif-1",
-      category: "screening",
-      title: "AI Sàng Lọc Hoàn Tất",
-      content: "Đã phân tích và xếp hạng 38 hồ sơ ứng viên vị trí Senior Fullstack AI Engineer.",
-      time: "15 phút trước",
-      isRead: false,
-      linkUrl: "/screening",
-    },
-    {
-      id: "notif-2",
-      category: "interview",
-      title: "Đã Nhận Đánh Giá Phỏng Vấn Mới",
-      content: "Interviewer Lê Minh Tuấn đã gửi rubric đánh giá 5 sao cho ứng viên Candidate #TSC-880F.",
-      time: "1 giờ trước",
-      isRead: false,
-      linkUrl: "/interviews",
-    },
-    {
-      id: "notif-3",
-      category: "compliance",
-      title: "Cảnh Báo Kiểm Định EEOC Four-Fifths Rule",
-      content: "Tỷ lệ vượt qua vòng 1 giữa các nhóm nhân khẩu học đạt 0.94 (Vượt ngưỡng an toàn 0.80).",
-      time: "3 giờ trước",
-      isRead: false,
-      linkUrl: "/analytics",
-    },
-    {
-      id: "notif-4",
-      category: "screening",
-      title: "Ứng Viên Đạt Điểm Xuất Sắc (95%)",
-      content: "Ứng viên Candidate #TSC-33A1 đạt điểm tương thích 95% vị trí AI Research Scientist.",
-      time: "Hôm qua",
-      isRead: true,
-      linkUrl: "/candidates/cand-5",
-    },
-    {
-      id: "notif-5",
-      category: "system",
-      title: "Bản Cập Nhật Vector Database pgvector",
-      content: "Đã tối ưu hóa chỉ mục HNSW cosine index cho bảng embeddings.",
-      time: "2 ngày trước",
-      isRead: true,
-      linkUrl: "/settings",
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -134,8 +89,15 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notifications List */}
-      <Card padding="none" className="divide-y divide-[#EFEFEA]">
-        {filtered.map((item) => (
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Bell size={22} />}
+          title="Chưa có thông báo mới"
+          description="Các thông báo tự động về tiến trình sàng lọc AI, cập nhật phỏng vấn và kiểm toán đạo đức EEOC sẽ xuất hiện tại đây khi có dữ liệu phát sinh."
+        />
+      ) : (
+        <Card padding="none" className="divide-y divide-[#EFEFEA]">
+          {filtered.map((item) => (
           <div
             key={item.id}
             className={`p-4 flex items-start justify-between gap-4 ats-interactive hover:bg-[#FAFAF8] ${
@@ -191,6 +153,7 @@ export default function NotificationsPage() {
           </div>
         ))}
       </Card>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Settings,
   Users,
@@ -15,67 +15,22 @@ import {
   Server,
   Sliders,
   Database,
+  Check,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
-interface UserItem {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "recruiter" | "hiring_manager" | "interviewer" | "read_only";
-  status: "active" | "inactive";
-  lastLogin: string;
-}
+import { getUserSession, UserSession } from "@/lib/auth-storage";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"users" | "blind" | "ai">("users");
+  const [session, setSession] = useState<UserSession | null>(null);
 
-  // Users list
-  const [users, setUsers] = useState<UserItem[]>([
-    {
-      id: "u-1",
-      name: "Lê Minh Tuấn",
-      email: "admin@talentscout.ai",
-      role: "admin",
-      status: "active",
-      lastLogin: "Vừa xong",
-    },
-    {
-      id: "u-2",
-      name: "Trần Trọng Hưng",
-      email: "recruiter@talentscout.ai",
-      role: "recruiter",
-      status: "active",
-      lastLogin: "2 giờ trước",
-    },
-    {
-      id: "u-3",
-      name: "Nguyễn Hoàng Long",
-      email: "manager@talentscout.ai",
-      role: "hiring_manager",
-      status: "active",
-      lastLogin: "Hôm qua",
-    },
-    {
-      id: "u-4",
-      name: "Phạm Thùy Linh",
-      email: "interviewer@talentscout.ai",
-      role: "interviewer",
-      status: "active",
-      lastLogin: "3 ngày trước",
-    },
-    {
-      id: "u-5",
-      name: "Kiểm Toán Viên Độc Lập",
-      email: "auditor@talentscout.ai",
-      role: "read_only",
-      status: "active",
-      lastLogin: "1 tuần trước",
-    },
-  ]);
+  useEffect(() => {
+    setSession(getUserSession());
+  }, []);
 
   // Blind screening toggles
   const [blindDefault, setBlindDefault] = useState(true);
@@ -152,94 +107,95 @@ export default function SettingsPage() {
       {/* TAB 1: USERS & RBAC */}
       {activeTab === "users" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#6B6B66]">
-              Tổng cộng {users.length} tài khoản thành viên trong tổ chức.
-            </span>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Plus size={14} />}
-              onClick={() => alert("Mở form mời thành viên mới vào tổ chức ATS.")}
-            >
-              + Thêm Thành Viên
-            </Button>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Active Session Card */}
+            <Card padding="md" className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#E5E5E0] pb-3">
+                <UserCheck size={18} className="text-[#0F766E]" />
+                <div>
+                  <CardTitle className="text-sm">Phiên Đăng Nhập Hiện Tại</CardTitle>
+                  <CardDescription className="text-[11px]">
+                    Thông tin tài khoản đã xác thực qua Supabase Auth
+                  </CardDescription>
+                </div>
+              </div>
 
-          <Card padding="none" className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs ats-table">
-                <thead>
-                  <tr className="border-b border-[#E5E5E0]">
-                    <th className="py-3 px-4">Họ Tên & Email</th>
-                    <th className="py-3 px-4">Vai Trò Hệ Thống (RBAC)</th>
-                    <th className="py-3 px-4">Quyền Hạn Chính</th>
-                    <th className="py-3 px-4">Trạng Thái</th>
-                    <th className="py-3 px-4">Đăng Nhập Gần Nhất</th>
-                    <th className="py-3 px-4 text-right">Thao Tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#EFEFEA]">
-                  {users.map((u) => (
-                    <tr key={u.id} className="ats-interactive hover:bg-[#FAFAF8]">
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-sm text-[#1A1A1A] block">
-                          {u.name}
-                        </span>
-                        <span className="text-[11px] text-[#6B6B66]">{u.email}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge
-                          variant={
-                            u.role === "admin"
-                              ? "danger"
-                              : u.role === "recruiter"
-                              ? "accent"
-                              : u.role === "hiring_manager"
-                              ? "info"
-                              : "neutral"
-                          }
-                          size="sm"
-                        >
-                          {u.role === "admin"
-                            ? "Quản trị viên (Admin)"
-                            : u.role === "recruiter"
-                            ? "Recruiter Lead"
-                            : u.role === "hiring_manager"
-                            ? "Hiring Manager"
-                            : u.role === "interviewer"
-                            ? "Interviewer"
-                            : "Read-only"}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-[#6B6B66]">
-                        {u.role === "admin"
-                          ? "Toàn quyền quản trị & cấu hình"
-                          : u.role === "recruiter"
-                          ? "Tạo JD, chạy AI screening, quản trị pipeline"
-                          : u.role === "hiring_manager"
-                          ? "Xem hồ sơ (Blind), duyệt phỏng vấn & offer"
-                          : u.role === "interviewer"
-                          ? "Chỉ xem hồ sơ phân công & chấm feedback"
-                          : "Chỉ đọc dữ liệu báo cáo audit"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="success" size="sm" dot>
-                          Hoạt động
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-[#6B6B66]">{u.lastLogin}</td>
-                      <td className="py-3 px-4 text-right">
-                        <button className="text-[#0F766E] hover:underline font-semibold mr-3">
-                          Sửa quyền
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Họ và tên:</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    {session?.fullName || "Chuyên viên tuyển dụng"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Email:</span>
+                  <span className="font-semibold text-[#1A1A1A] font-mono">
+                    {session?.email || "recruiter@talentscout.ai"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Vai trò hệ thống:</span>
+                  <Badge variant="accent" size="sm">
+                    {session?.role === "admin" ? "Quản trị viên (Admin)" : "Nhà tuyển dụng (Recruiter)"}
+                  </Badge>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Trạng thái phiên:</span>
+                  <Badge variant="success" size="sm" dot>
+                    Xác thực máy chủ (Server Session)
+                  </Badge>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-[#6B6B66]">Chức danh / Tổ chức:</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    {session?.jobTitle || session?.companyName || "TalentScout ATS Org"}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* System Parameters & RBAC Architecture */}
+            <Card padding="md" className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#E5E5E0] pb-3">
+                <Server size={18} className="text-[#0F766E]" />
+                <div>
+                  <CardTitle className="text-sm">Thông Số Hệ Thống & Kiểm Toán</CardTitle>
+                  <CardDescription className="text-[11px]">
+                    Các ràng buộc kiến trúc và tham số an toàn (Read-only)
+                  </CardDescription>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Quyền hạn Recruiter:</span>
+                  <span className="font-semibold text-[#1A1A1A] text-right">
+                    Quản lý JD, Pipeline, AI Screening, Outbox
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Quyền hạn Candidate:</span>
+                  <span className="font-semibold text-[#1A1A1A] text-right">
+                    Chỉ xem việc làm, nộp CV và quản lý hồ sơ cá nhân
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Chuẩn hóa kỹ năng:</span>
+                  <span className="font-semibold text-[#0F766E]">ESCO v2.0 Taxonomy & O*NET</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#F2F2EE]">
+                  <span className="text-[#6B6B66]">Kiểm định công bằng:</span>
+                  <span className="font-semibold text-[#0F766E]">EEOC Four-Fifths Rule (Ngưỡng 80%)</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-[#6B6B66]">Chế độ Outbox:</span>
+                  <Badge variant="neutral" size="sm">
+                    Lưu Supabase Safe Mode (Không gửi ra ngoài)
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       )}
 

@@ -5,32 +5,55 @@ import { verifyServerSession, getUserCompanyIds, extractParsedDataFromRawText } 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
-
-    if (!email) {
-      return NextResponse.json({ error: "Thiếu email ứng viên" }, { status: 400 });
-    }
-
     const { supabase, auth } = await verifyServerSession(req);
 
-    // If caller is authenticated as candidate, enforce that email matches their account
-    if (auth.isAuthenticated && auth.role === "candidate") {
-      if (auth.email && auth.email.toLowerCase() !== email.toLowerCase()) {
-        return NextResponse.json(
-          { error: "Bạn không có quyền truy cập hồ sơ của ứng viên khác." },
-          { status: 403 }
-        );
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
+    }
+
+    // Enforce email confirmation for candidates
+    if (auth.role === "candidate" && !auth.emailConfirmedAt) {
+      return NextResponse.json(
+        { error: "Tài khoản ứng viên chưa xác thực địa chỉ email. Vui lòng xác thực email trước khi truy cập." },
+        { status: 403 }
+      );
+    }
+
+    // Enforce server-verified email for candidates (lowercased); do not trust client query params
+    const rawEmail = auth.role === "candidate" && auth.email ? auth.email : searchParams.get("email");
+    const cleanEmail = rawEmail ? rawEmail.trim().toLowerCase() : "";
+
+    // Tra cứu candidates theo user_id trước, rồi theo email (chữ thường)
+    let candidate: any = null;
+
+    if (auth.userId) {
+      const { data: candByUserId, error: candUserErr } = await supabase
+        .from("candidates")
+        .select("*")
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+
+      if (candUserErr) {
+        return NextResponse.json({ error: candUserErr.message }, { status: 500 });
+      }
+      if (candByUserId) {
+        candidate = candByUserId;
       }
     }
 
-    const { data: candidate, error: candErr } = await supabase
-      .from("candidates")
-      .select("*")
-      .eq("email", email)
-      .maybeSingle();
+    if (!candidate && cleanEmail) {
+      const { data: candByEmail, error: candEmailErr } = await supabase
+        .from("candidates")
+        .select("*")
+        .eq("email", cleanEmail)
+        .maybeSingle();
 
-    if (candErr) {
-      return NextResponse.json({ error: candErr.message }, { status: 500 });
+      if (candEmailErr) {
+        return NextResponse.json({ error: candEmailErr.message }, { status: 500 });
+      }
+      if (candByEmail) {
+        candidate = candByEmail;
+      }
     }
 
     if (!candidate) {
@@ -96,9 +119,23 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const { supabase, auth } = await verifyServerSession(req);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập để cập nhật hồ sơ." }, { status: 401 });
+    }
+
+    if (auth.role === "candidate" && !auth.emailConfirmedAt) {
+      return NextResponse.json(
+        { error: "Tài khoản ứng viên chưa xác thực địa chỉ email. Vui lòng xác thực email trước khi truy cập." },
+        { status: 403 }
+      );
+    }
+
     const formData = await req.formData();
     const fullName = formData.get("fullName") as string;
-    const email = formData.get("email") as string;
+    const emailInput = formData.get("email") as string;
+    const rawEmail = auth.role === "candidate" && auth.email ? auth.email : emailInput;
+    const cleanEmail = rawEmail ? rawEmail.trim().toLowerCase() : "";
     const phone = (formData.get("phone") as string) || "";
     const location = (formData.get("location") as string) || "";
     const skillsRaw = formData.get("skills") as string | null;
@@ -111,59 +148,75 @@ export async function POST(req: NextRequest) {
         if (Array.isArray(parsed)) {
           userSkills = parsed.map((s: any) => String(s).trim()).filter(Boolean);
         }
-      } catch {}
+      } catch { }
     }
 
-    if (!fullName || !email) {
+    if (!fullName || !cleanEmail) {
       return NextResponse.json(
         { error: "Vui lòng nhập đầy đủ Họ tên và Email." },
         { status: 400 }
       );
     }
 
-    const supabase = createClient();
-
-    // 1. Find or create candidate
+    // 1. Find or create candidate: tra cứu theo user_id trước, rồi theo email (chữ thường)
     let candidateId = "";
-    const { data: existingCand } = await supabase
-      .from("candidates")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    let existingCand: any = null;
+
+    if (auth.userId) {
+      const { data: byUser } = await supabase
+        .from("candidates")
+        .select("id, user_id")
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      if (byUser) existingCand = byUser;
+    }
+
+    if (!existingCand && cleanEmail) {
+      const { data: byEmail } = await supabase
+        .from("candidates")
+        .select("id, user_id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+      if (byEmail) existingCand = byEmail;
+    }
 
     if (existingCand) {
       candidateId = existingCand.id;
+      const updatePayload: any = {
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        location: location.trim(),
+      };
+      if (auth.userId && !existingCand.user_id) {
+        updatePayload.user_id = auth.userId;
+      }
       const { error: updateErr } = await supabase
         .from("candidates")
-        .update({
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          location: location.trim(),
-        })
+        .update(updatePayload)
         .eq("id", candidateId);
 
       if (updateErr) {
         return NextResponse.json({ error: updateErr.message }, { status: 500 });
       }
     } else {
-      const { data: newCand, error: insertErr } = await supabase
+      candidateId = crypto.randomUUID();
+      const { error: insertErr } = await supabase
         .from("candidates")
         .insert({
+          id: candidateId,
+          user_id: auth.userId,
           full_name: fullName.trim(),
-          email: email.trim().toLowerCase(),
+          email: cleanEmail,
           phone: phone.trim(),
           location: location.trim(),
-        })
-        .select("id")
-        .single();
+        });
 
-      if (insertErr || !newCand) {
+      if (insertErr) {
         return NextResponse.json(
-          { error: insertErr?.message || "Không thể tạo hồ sơ ứng viên" },
-          { status: 500 }
+          { error: `Không thể tạo hồ sơ ứng viên do giới hạn phân quyền bảo mật: ${insertErr.message}` },
+          { status: 403 }
         );
       }
-      candidateId = newCand.id;
     }
 
     // 2. Upload resume if provided
@@ -280,7 +333,7 @@ export async function POST(req: NextRequest) {
       candidate: {
         id: candidateId,
         full_name: fullName,
-        email,
+        email: cleanEmail,
         phone,
         location,
       },

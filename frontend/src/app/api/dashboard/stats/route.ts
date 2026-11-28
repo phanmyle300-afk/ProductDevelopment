@@ -1,9 +1,19 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { verifyServerSession } from "@/lib/auth-guard";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const { supabase, auth } = await verifyServerSession(req);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
+    }
+
+    if (auth.role === "candidate") {
+      return NextResponse.json(
+        { error: "Ứng viên không có quyền truy cập số liệu quản trị." },
+        { status: 403 }
+      );
+    }
 
     // 1. Fetch counts
     const [jobsRes, candRes, appsRes] = await Promise.all([

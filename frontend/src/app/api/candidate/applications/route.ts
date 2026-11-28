@@ -4,36 +4,52 @@ import { verifyServerSession } from "@/lib/auth-guard";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
-
-    if (!email) {
-      return NextResponse.json({ error: "Thiếu email ứng viên" }, { status: 400 });
-    }
-
     const { supabase, auth } = await verifyServerSession(req);
 
     if (!auth.isAuthenticated) {
       return NextResponse.json({ error: "Yêu cầu đăng nhập." }, { status: 401 });
     }
 
-    // If caller is authenticated as candidate, enforce that email matches their account
-    if (auth.role === "candidate") {
-      if (auth.email && auth.email.toLowerCase() !== email.toLowerCase()) {
-        return NextResponse.json(
-          { error: "Bạn không có quyền truy cập hồ sơ ứng tuyển của người khác." },
-          { status: 403 }
-        );
+    // Enforce email confirmation for candidates
+    if (auth.role === "candidate" && !auth.emailConfirmedAt) {
+      return NextResponse.json(
+        { error: "Tài khoản ứng viên chưa xác thực địa chỉ email. Vui lòng xác thực email trước khi truy cập." },
+        { status: 403 }
+      );
+    }
+
+    // Enforce server-verified email for candidates (lowercased); do not trust client query params
+    const rawEmail = auth.role === "candidate" && auth.email ? auth.email : searchParams.get("email");
+    const cleanEmail = rawEmail ? rawEmail.trim().toLowerCase() : "";
+
+    // Tra cứu candidates theo user_id trước, rồi theo email (chữ thường)
+    let candidateId: string | null = null;
+
+    if (auth.userId) {
+      const { data: candByUserId } = await supabase
+        .from("candidates")
+        .select("id")
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+
+      if (candByUserId?.id) {
+        candidateId = candByUserId.id;
       }
     }
 
-    // Find candidate by email
-    const { data: cand } = await supabase
-      .from("candidates")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    if (!candidateId && cleanEmail) {
+      const { data: candByEmail } = await supabase
+        .from("candidates")
+        .select("id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
 
-    if (!cand) {
+      if (candByEmail?.id) {
+        candidateId = candByEmail.id;
+      }
+    }
+
+    if (!candidateId) {
       return NextResponse.json({ applications: [] });
     }
 
@@ -54,7 +70,7 @@ export async function GET(req: NextRequest) {
           status
         )
       `)
-      .eq("candidate_id", cand.id)
+      .eq("candidate_id", candidateId)
       .order("applied_at", { ascending: false });
 
     if (error) {

@@ -1,40 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { verifyServerSession } from "@/lib/auth-guard";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc"];
 
 export async function POST(request: NextRequest) {
   let uploadedObjectKey: string | null = null;
-  const supabase = createClient();
+  let supabaseClient: any = null;
 
   try {
+    const { supabase, auth } = await verifyServerSession(request);
+    supabaseClient = supabase;
+    if (!auth.isAuthenticated) {
+      return NextResponse.json(
+        { error: "Yêu cầu đăng nhập để nộp hồ sơ ứng tuyển hoặc tải lên CV." },
+        { status: 401 }
+      );
+    }
+
+    // 1. Guard role: Block Recruiter/Admin from uploading CV on behalf of candidates in this release
+    if (auth.role !== "candidate") {
+      return NextResponse.json(
+        { error: "Tải CV hộ ứng viên chưa được hỗ trợ trong bản này." },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const fullName = formData.get("fullName") as string | null;
-    const email = formData.get("email") as string | null;
     const phone = formData.get("phone") as string | null;
     const jobId = formData.get("jobId") as string | null;
     const file = (formData.get("file") || formData.get("resume")) as File | null;
 
-    // 1. Validation input fields
+    // Discard client-submitted email, enforce server-verified session email (lowercased)
+    const cleanEmail = (auth.email || "").toLowerCase().trim();
+    if (!cleanEmail) {
+      return NextResponse.json(
+        { error: "Không tìm thấy thông tin email hợp lệ trong phiên đăng nhập của ứng viên." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Validation input fields
     if (!fullName || !fullName.trim()) {
       return NextResponse.json(
         { error: "Vui lòng nhập họ và tên ứng viên." },
-        { status: 400 }
-      );
-    }
-
-    if (!email || !email.trim()) {
-      return NextResponse.json(
-        { error: "Vui lòng nhập địa chỉ email ứng viên." },
-        { status: 400 }
-      );
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      return NextResponse.json(
-        { error: "Địa chỉ email không đúng định dạng." },
         { status: 400 }
       );
     }
@@ -88,38 +98,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cleanEmail = email.trim().toLowerCase();
     const cleanName = fullName.trim();
     const cleanPhone = phone ? phone.trim() : null;
 
-    // 4. Anti-duplicate candidate check by email
-    const { data: existingCandidate } = await supabase
-      .from("candidates")
-      .select("id, full_name, email")
-      .eq("email", cleanEmail)
-      .maybeSingle();
+    // 4. Candidate lookup: check user_id first, then email (two separate queries, never string interpolation)
+    let candidateId: string | null = null;
 
-    let candidateId: string;
+    if (auth.userId) {
+      const { data: candByUserId } = await supabase
+        .from("candidates")
+        .select("id, full_name, email, user_id")
+        .eq("user_id", auth.userId)
+        .maybeSingle();
 
-    if (existingCandidate) {
-      candidateId = existingCandidate.id;
-    } else {
-      // Create new candidate record (user_id remains null)
-      candidateId = crypto.randomUUID();
+      if (candByUserId) {
+        candidateId = candByUserId.id;
+      }
+    }
+
+    if (!candidateId && cleanEmail) {
+      const { data: candByEmail } = await supabase
+        .from("candidates")
+        .select("id, full_name, email, user_id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (candByEmail) {
+        candidateId = candByEmail.id;
+        // Bind user_id if not yet bound
+        if (auth.userId && !candByEmail.user_id) {
+          await supabase
+            .from("candidates")
+            .update({ user_id: auth.userId })
+            .eq("id", candidateId);
+        }
+      }
+    }
+
+    // If candidate does not exist yet, create new candidate profile with authenticated user_id
+    if (!candidateId) {
+      const newCandId = crypto.randomUUID();
       const { error: candInsertErr } = await supabase.from("candidates").insert({
-        id: candidateId,
+        id: newCandId,
         full_name: cleanName,
         email: cleanEmail,
         phone: cleanPhone,
-        user_id: null, // Strictly null when candidate does not have user account
+        user_id: auth.userId,
       });
 
       if (candInsertErr) {
         return NextResponse.json(
-          { error: `Lỗi khởi tạo hồ sơ ứng viên: ${candInsertErr.message}` },
-          { status: 500 }
+          { error: `Không thể khởi tạo hồ sơ ứng viên do giới hạn phân quyền bảo mật: ${candInsertErr.message}` },
+          { status: 403 }
         );
       }
+      candidateId = newCandId;
     }
 
     // 5. Anti-duplicate application check (UNIQUE candidate_id, job_id)
@@ -231,9 +264,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     // If unexpected error, cleanup partial file
-    if (uploadedObjectKey) {
+    if (uploadedObjectKey && supabaseClient) {
       try {
-        await supabase.storage.from("resumes").remove([uploadedObjectKey]);
+        await supabaseClient.storage.from("resumes").remove([uploadedObjectKey]);
       } catch {}
     }
 
